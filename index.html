@@ -166,39 +166,12 @@
             </div>
 
             <h2 class="text-4xl font-black font-display text-white tracking-wide mb-3">PRICE CHECKER</h2>
-            <p class="text-xl text-slate-300 font-medium max-w-xl">Silakan scan barcode produk atau ketuk tombol/produk demo di bawah ini untuk melihat detail harga.</p>
+            <p class="text-xl text-slate-300 font-medium max-w-xl">Silakan scan barcode produk untuk melihat detail harga.</p>
 
             <!-- Touch Prompt Badge -->
             <div class="mt-8 px-6 py-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-brand-100 font-semibold text-sm flex items-center space-x-3 shadow-lg">
                 <i class="fa-solid fa-hand-pointer text-brand-500 animate-bounce"></i>
                 <span>Ketuk Layar / Gunakan Keypad untuk Memulai</span>
-            </div>
-        </div>
-
-        <!-- DEMO QUICK PRODUCT CHIPS -->
-        <div class="w-full max-w-5xl mx-auto pt-6 border-t border-slate-700/60">
-            <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 text-center">Pilih Produk Demo Cepat (Uji Coba Direct):</p>
-            <div class="flex flex-wrap justify-center gap-3">
-                <button onclick="scanProduct('8991234567890')" class="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 text-white font-bold text-sm transition flex items-center space-x-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                    <span>8991234567890 - Lengkeng Bangkok</span>
-                </button>
-                <button onclick="scanProduct('8991234567891')" class="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 text-white font-bold text-sm transition flex items-center space-x-2">
-                    <span class="w-2 h-2 rounded-full bg-blue-400"></span>
-                    <span>8991234567891 - Susu UHT Coklat 1L</span>
-                </button>
-                <button onclick="scanProduct('8991234567895')" class="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 text-white font-bold text-sm transition flex items-center space-x-2">
-                    <span class="w-2 h-2 rounded-full bg-purple-400"></span>
-                    <span>8991234567895 - Mie Instan Goreng</span>
-                </button>
-                <button onclick="scanProduct('8991234567898')" class="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 text-white font-bold text-sm transition flex items-center space-x-2">
-                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                    <span>8991234567898 - Detergen Cair</span>
-                </button>
-                <button onclick="scanProduct('999999')" class="px-5 py-3 rounded-2xl bg-red-500/20 hover:bg-red-500/30 active:scale-95 border border-red-500/30 text-red-200 font-bold text-sm transition flex items-center space-x-2">
-                    <span class="w-2 h-2 rounded-full bg-red-400"></span>
-                    <span>999999 - (Tes Tidak Ada)</span>
-                </button>
             </div>
         </div>
     </div>
@@ -288,12 +261,12 @@
                 <!-- Product Details Column -->
                 <div class="flex-1 w-full pt-4">
                     <div class="text-xs font-bold font-mono tracking-widest text-slate-400 uppercase mb-1">
-                        KODE PRODUK: <span id="displaySKU" class="text-slate-800 font-extrabold">001234</span>
+                        KODE PRODUK: <span id="displaySKU" class="text-slate-800 font-extrabold">—</span>
                     </div>
 
                     <!-- Product Name (Highest Priority visual) -->
                     <h2 id="displayName" class="text-4xl md:text-5xl font-black font-display text-slate-900 tracking-tight leading-tight mb-4">
-                        LENGKENG BANGKOK
+                        SCAN BARCODE PRODUK
                     </h2>
 
                     <!-- PRICE HIERARCHY -->
@@ -405,6 +378,13 @@
         </div>
     </div>
 
+    <!-- KIOSK NONAKTIF (dikontrol dari panel admin) -->
+    <div id="kioskDisabledOverlay" class="fixed inset-0 bg-slate-900 text-white z-[70] flex flex-col items-center justify-center text-center p-10 hidden">
+        <i class="fa-solid fa-screwdriver-wrench text-6xl text-amber-400 mb-6"></i>
+        <h2 class="text-3xl font-black font-display mb-3">KIOSK SEDANG TIDAK AKTIF</h2>
+        <p class="text-slate-300 text-lg max-w-md">Mesin cek harga ini sedang dalam perawatan. Silakan tanyakan harga kepada petugas toko.</p>
+    </div>
+
     <!-- B. PROMO DETAIL MODAL -->
     <div id="promoModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-6 hidden">
         <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200">
@@ -492,14 +472,13 @@
          * KONFIGURASI SUPABASE (isi sebelum dipakai)
          * - ANON KEY aman berada di sisi client karena akses dibatasi RLS.
          * - JANGAN pernah memakai service_role key di file ini.
-         * - Akun kiosk = user Auth dengan role KIOSK (lihat 002_seed_sample.sql).
+         * - Kiosk TIDAK memakai login: berjalan sebagai role anon. Hak aksesnya diatur
+         *   lewat RLS/GRANT di Supabase (lihat kiosk_anon_access.sql).
          * ==================================================== */
         const CONFIG = {
-            SUPABASE_URL: 'https://YOUR-PROJECT.supabase.co',
+            SUPABASE_URL: 'https://qwwtawqidgwiabenkuwk.supabase.co',
             SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3d3Rhd3FpZGd3aWFiZW5rdXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MzkzOTUsImV4cCI6MjA5ODExNTM5NX0.Q05_kZrzbL7n4FRlVsYOKyh7xrQ2ykPfnMFi6LiLGvg',
-            KIOSK_CODE: 'KIOSK-001',
-            KIOSK_EMAIL: 'kiosk-001@example.com',
-            KIOSK_PASSWORD: 'GANTI-PASSWORD-KIOSK'
+            KIOSK_CODE: 'KIOSK-001'
         };
         const APP_VERSION = '1.1.0';
         const HEARTBEAT_MS = 60000;      // heartbeat tiap 60 detik
@@ -524,10 +503,11 @@
 
         let sb = null;                 // Supabase client
         let db = null;                 // IndexedDB
-        let kiosk = null;              // { id, store_id, kiosk_code, kiosk_name }
+        let kiosk = null;              // { id, store_id, kiosk_code, kiosk_name, status }
         let isOnline = false;          // hasil heartbeat terakhir
         let forceOffline = false;      // simulasi offline dari menu pengaturan
         let syncing = false;
+        let lastError = '';            // alasan gagal terakhir (untuk diagnosa offline)
         let syncTimer = null;
         let realtimeStarted = false;
         let scanSeq = 0;
@@ -536,6 +516,20 @@
         const $ = (id) => document.getElementById(id);
         const isConfigured = () => !CONFIG.SUPABASE_URL.includes('YOUR-PROJECT') && !CONFIG.SUPABASE_ANON_KEY.includes('YOUR-ANON');
         const effectiveOnline = () => isOnline && !forceOffline;
+        // Kiosk dinonaktifkan dari panel admin (status false / 'MAINTENANCE' / 'INACTIVE')
+        const isKioskDisabled = () => {
+            if (!kiosk) return false;
+            const st = kiosk.status;
+            if (st === false) return true;
+            return typeof st === 'string' && ['MAINTENANCE', 'INACTIVE', 'NONAKTIF'].includes(st.toUpperCase());
+        };
+        function applyKioskStatusUI() {
+            const ov = $('kioskDisabledOverlay');
+            if (!ov) return;
+            const off = isKioskDisabled();
+            ov.classList.toggle('hidden', !off);
+            if (off) { closeNotFoundModal(); scanSeq++; }
+        }
         const ts = (d) => d ? new Date(d).getTime() : 0;
         const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n));
 
@@ -558,10 +552,15 @@
         }
 
         // Aktif = status true, sudah mulai, belum berakhir (dievaluasi di sisi kiosk agar tetap benar saat offline)
+        // Nilai tanggal-saja (YYYY-MM-DD) dianggap awal hari / akhir hari (23:59:59) waktu lokal,
+        // supaya konsisten dengan panel admin. Nilai dengan jam (timestamptz) dipakai apa adanya.
+        const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+        const periodStart = (d) => d ? new Date(DATE_ONLY.test(d) ? d + 'T00:00:00' : d) : null;
+        const periodEnd = (d) => d ? new Date(DATE_ONLY.test(d) ? d + 'T23:59:59.999' : d) : null;
         function isActive(row, now) {
             if (!row || row.status === false) return false;
-            if (row.start_date && new Date(row.start_date) > now) return false;
-            if (row.end_date && new Date(row.end_date) < now) return false;
+            if (row.start_date && periodStart(row.start_date) > now) return false;
+            if (row.end_date && periodEnd(row.end_date) < now) return false;
             return true;
         }
         function pickActivePrice(rows, now) {
@@ -629,24 +628,19 @@
         /* ----------------------------------------------------
          * AUTH & INFO KIOSK
          * ---------------------------------------------------- */
-        async function ensureSession() {
-            const { data: { session } } = await sb.auth.getSession();
-            if (session) return session;
-            const { data, error } = await sb.auth.signInWithPassword({
-                email: CONFIG.KIOSK_EMAIL, password: CONFIG.KIOSK_PASSWORD
-            });
-            if (error) throw error;
-            return data.session;
-        }
+        // Kiosk tanpa login: semua request memakai anon key. Fungsi dipertahankan agar
+        // pemanggilnya tidak perlu diubah.
+        async function ensureSession() { return null; }
 
         async function loadKioskInfo() {
             const { data, error } = await sb.from('kiosks')
-                .select('id,store_id,kiosk_code,kiosk_name')
+                .select('id,store_id,kiosk_code,kiosk_name,status')
                 .eq('kiosk_code', CONFIG.KIOSK_CODE).maybeSingle();
             if (error) throw error;
             if (data) {
                 kiosk = data;
                 await idbPutMany('meta', [{ key: 'kiosk', value: data }]);
+                applyKioskStatusUI();
             }
         }
 
@@ -699,7 +693,8 @@
                 const m = db ? await idbGet('meta', 'last_sync_at') : null;
                 if (m) last = new Date(m.value).toLocaleString('id-ID');
             } catch (e) { /* abaikan */ }
-            box.textContent = `${CONFIG.KIOSK_CODE} • v${APP_VERSION} • Sync terakhir: ${last}`;
+            box.textContent = `${CONFIG.KIOSK_CODE} • v${APP_VERSION} • Sync terakhir: ${last}` +
+                (lastError ? ` • Error: ${lastError}` : '');
         }
 
         /* ----------------------------------------------------
@@ -709,19 +704,22 @@
             if (!sb || forceOffline) { applyOnlineUI(); return; }
             try {
                 await ensureSession();
-                if (!kiosk) await loadKioskInfo();
+                await loadKioskInfo().catch(e => console.warn('Muat info kiosk gagal:', e));
                 const { error } = await sb.rpc('kiosk_heartbeat', {
                     p_kiosk_code: CONFIG.KIOSK_CODE, p_app_version: APP_VERSION
                 });
                 if (error) throw error;
                 const was = isOnline;
                 isOnline = true;
+                lastError = '';
                 applyOnlineUI();
                 if (!was) { startRealtime(); scheduleSync(0); }
             } catch (e) {
                 console.warn('Heartbeat gagal:', e);
+                lastError = (e && (e.message || e.error_description)) || String(e);
                 isOnline = false;
                 applyOnlineUI();
+                updateSyncInfo();
             }
         }
 
@@ -770,6 +768,8 @@
                 .forEach(t => {
                     ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => scheduleSync(2000));
                 });
+            ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: 'kiosks' },
+                () => loadKioskInfo().catch(e => console.warn('Muat info kiosk gagal:', e)));
             ch.subscribe((status) => console.log('Realtime:', status));
         }
 
@@ -832,6 +832,7 @@
                 db = await idbOpen();
                 const k = await idbGet('meta', 'kiosk');
                 if (k) kiosk = k.value;
+                applyKioskStatusUI();
                 await renderEvents();
                 await renderPwpBanner();
             } catch (e) {
@@ -844,7 +845,8 @@
                 return;
             }
             sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
-                auth: { persistSession: true, autoRefreshToken: true }
+                // Tanpa login: jangan simpan/ambil sesi (agar tidak ikut sesi admin di domain yang sama)
+                auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
             });
 
             await heartbeat();
@@ -1067,6 +1069,7 @@
         }
 
         async function scanProduct(code) {
+            if (isKioskDisabled()) return; // kiosk dinonaktifkan dari admin
             playBeep(2400, 'sine', 0.12); // High Beep Scanner Feedback
             hideStandbyScreen();
 
