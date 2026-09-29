@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Price Checker Admin Panel</title>
+  
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Supabase JS Client v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Alpine.js CDN -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased selection:bg-blue-500 selection:text-white"
+      x-data="adminApp()" x-init="initApp()" x-cloak>
+
+  <!-- ========================================== -->
+  <!-- 1. LOGIN SECTION                           -->
+  <!-- ========================================== -->
+  <div x-show="!session" class="min-h-screen flex items-center justify-center p-4 bg-slate-100">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200/80 p-8">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 mb-4 shadow-inner">
+          <i data-lucide="scan-barcode" class="w-8 h-8"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">PRICE CHECKER</h1>
+        <p class="text-sm font-semibold text-blue-600 tracking-wider uppercase mt-1">Admin Panel</p>
+      </div>
+
+      <form @submit.prevent="handleLogin()" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Email</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="email" x-model="loginForm.email" required
+                   class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm outline-none"
+                   placeholder="admin@retail.com">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Password</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="password" x-model="loginForm.password" required
+                   class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm outline-none"
+                   placeholder="••••••••">
+          </div>
+        </div>
+
+        <button type="submit" :disabled="loading"
+                class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+          <template x-if="!loading"><span>LOGIN</span></template>
+          <template x-if="loading"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i></template>
+        </button>
+      </form>
+
+      <div class="mt-6 text-center">
+        <a href="#" @click.prevent="showForgotAlert()" class="text-xs font-medium text-blue-600 hover:underline">Lupa Password?</a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- 2. MAIN DASHBOARD LAYOUT                  -->
+  <!-- ========================================== -->
+  <div x-show="session" class="min-h-screen flex flex-col bg-slate-100">
+    
+    <!-- TOP NAVBAR -->
+    <header class="h-16 bg-white border-b border-slate-200/80 sticky top-0 z-30 px-4 md:px-6 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg">P</div>
+          <span class="font-bold text-slate-900 tracking-tight hidden sm:inline text-lg">PRICE CHECKER <span class="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">ADMIN</span></span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div class="relative" x-data="{ open: false }">
+          <button @click="open = !open" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 relative">
+            <i data-lucide="bell" class="w-5 h-5"></i>
+            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600"></span>
+          </button>
+          <div x-show="open" @click.outside="open = false" class="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 text-xs">
+            <div class="px-4 py-2 border-b font-semibold text-slate-700">Notifikasi</div>
+            <div class="px-4 py-3 text-slate-500">Realtime sync aktif untuk seluruh store & kiosk.</div>
+          </div>
+        </div>
+
+        <div class="h-6 w-px bg-slate-200"></div>
+
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-sm shadow">
+            <span x-text="currentUserProfile?.full_name ? currentUserProfile.full_name.charAt(0).toUpperCase() : 'A'"></span>
+          </div>
+          <div class="hidden md:block text-left">
+            <div class="text-xs font-semibold text-slate-900 leading-none" x-text="currentUserProfile?.full_name || 'Admin User'"></div>
+            <div class="text-[10px] font-bold text-blue-600 uppercase mt-1" x-text="currentUserProfile?.role || 'ADMIN'"></div>
+          </div>
+          <button @click="handleLogout()" class="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-100 ml-1" title="Logout">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+      <!-- SIDEBAR -->
+      <aside class="fixed md:static inset-y-0 left-0 z-20 w-64 bg-white border-r border-slate-200/80 flex flex-col transition-transform duration-200 ease-in-out transform md:translate-x-0"
+             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+        <div class="p-4 custom-scrollbar overflow-y-auto flex-1 space-y-6">
+          
+          <div>
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Utama</div>
+            <nav class="space-y-1">
+              <a href="#" @click.prevent="currentView = 'dashboard'" :class="currentView === 'dashboard' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+              </a>
+            </nav>
+          </div>
+
+          <div>
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Katalog & Harga</div>
+            <nav class="space-y-1">
+              <a href="#" @click.prevent="currentView = 'products'" :class="currentView === 'products' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
+                <i data-lucide="package" class="w-4 h-4"></i> Produk
+              </a>
+              <a href="#" @click.prevent="currentView = 'categories'" :class="currentView === 'categories' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all pl-8 text-xs">
+                <i data-lucide="folder-tree" class="w-3.5 h-3.5"></i> Kategori
+              </a>
+              <a href="#" @click.prevent="currentView = 'prices'" :class="currentView === 'prices' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
+                <i data-lucide="tag" class="w-4 h-4"></i> Harga
+              </a>
+              <a href="#" @click.prevent="currentView = 'price_history'" :class="currentView === 'price_history' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all pl-8 text-xs">
+                <i data-lucide="history" class="w-3.5 h-3.5"></i> Riwayat Harga
+              </a>
+            </nav>
+          </div>
+
+          <div>
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Promosi</div>
+            <nav class="space-y-1">
+              <a href="#" @click.prevent="currentView = 'promos'" :class="currentView === 'promos' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
+                <i data-lucide="percent" class="w-4 h-4"></i> Promo
+              </a>
+              <a href="#" @click.prevent="currentView = 'events'" :class="currentView === 'events' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
+                <i data-lucide="calendar-range" class="w-4 h-4"></i> Event
+              </a>
+              <a href="#" @click.prevent="currentView = 'pwp'" :class="currentView === 'pwp' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
+                <i data-lucide="shopping-bag" class="w-4 h-4"></i> PWP
+              </a>
+            </nav>
+          </div>
+
+          <div>
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Operasional</div>
+            <nav class="space-y-1">
+              <a href="#" @click.prevent="currentView = 'kiosks'" :class="currentView === 'kiosks' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
+                <i data-lucide="monitor" class="w-4 h-4"></i> Kiosk
+              </a>
+              <a href="#" @click.prevent="currentView = 'stores'" :class="currentView === 'stores' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
+                <i data-lucide="store" class="w-4 h-4"></i> Toko
+              </a>
+              <a href="#" @click.prevent="currentView = 'users'" :class="currentView === 'users' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
+                <i data-lucide="users" class="w-4 h-4"></i> User Management
+              </a>
+              <a href="#" @click.prevent="currentView = 'activity_logs'" :class="currentView === 'activity_logs' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Activity Log
+              </a>
+            </nav>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- CONTENT AREA -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        
+        <!-- DASHBOARD VIEW -->
+        <div x-show="currentView === 'dashboard'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-900">Dashboard Overview</h2>
+            <div class="text-xs text-slate-500 font-medium">Realtime Metrics</div>
+          </div>
+
+          <!-- STATS CARDS -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+              <div class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Total Produk</div>
+              <div class="text-2xl font-bold text-slate-900 mt-2" x-text="stats.products">0</div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+              <div class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Promo Aktif</div>
+              <div class="text-2xl font-bold text-blue-600 mt-2" x-text="stats.promos">0</div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+              <div class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Event Aktif</div>
+              <div class="text-2xl font-bold text-purple-600 mt-2" x-text="stats.events">0</div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+              <div class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Kiosk Online</div>
+              <div class="text-2xl font-bold text-emerald-600 mt-2"><span x-text="stats.kiosksOnline">0</span> / <span x-text="stats.kiosksTotal">0</span></div>
+            </div>
+          </div>
+
+          <!-- CHARTS SECTION -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+              <h3 class="text-sm font-bold text-slate-900 mb-4">Aktivitas Price Checker (7 Hari Terakhir)</h3>
+              <div class="h-64">
+                <canvas id="chartActivity"></canvas>
+              </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+              <h3 class="text-sm font-bold text-slate-900 mb-4">Top Product Search</h3>
+              <div class="space-y-3">
+                <template x-for="(prod, idx) in topProducts" :key="idx">
+                  <div class="flex items-center justify-between text-xs p-2 rounded-xl bg-slate-50">
+                    <span class="font-medium text-slate-700 truncate max-w-[150px]" x-text="prod.name"></span>
+                    <span class="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full" x-text="prod.count + ' scans'"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <!-- RECENT ACTIVITY -->
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5">
+            <h3 class="text-sm font-bold text-slate-900 mb-4">Aktivitas Terbaru</h3>
+            <div class="divide-y divide-slate-100">
+              <template x-for="log in recentLogs" :key="log.id">
+                <div class="py-3 flex items-center justify-between text-xs">
+                  <div>
+                    <span class="font-semibold text-slate-900" x-text="log.user_email"></span>
+                    <span class="text-slate-500 mx-1">—</span>
+                    <span class="text-slate-700" x-text="log.action"></span>
+                    <span class="text-slate-400 ml-1" x-text="log.target ? '(' + log.target + ')' : ''"></span>
+                  </div>
+                  <div class="text-slate-400 font-mono text-[10px]" x-text="formatDate(log.created_at)"></div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRODUCTS VIEW -->
+        <div x-show="currentView === 'products'" class="space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold text-slate-900">Manajemen Produk</h2>
+              <p class="text-xs text-slate-500">Kelola master data seluruh katalog produk retail.</p>
+            </div>
+            <button @click="openProductModal()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs flex items-center gap-2 shadow-md shadow-blue-500/20">
+              <i data-lucide="plus" class="w-4 h-4"></i> Tambah Produk
+            </button>
+          </div>
+
+          <!-- FILTER BAR -->
+          <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3">
+            <input type="text" x-model="filters.productSearch" placeholder="Cari nama, barcode, SKU..." class="flex-1 px-3 py-2 bg-slate-50 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500">
+            <select x-model="filters.productCategory" class="px-3 py-2 bg-slate-50 border rounded-xl text-xs outline-none">
+              <option value="">Semua Kategori</option>
+              <template x-for="cat in categories" :key="cat.id">
+                <option :value="cat.id" x-text="cat.name"></option>
+              </template>
+            </select>
+            <select x-model="filters.productStatus" class="px-3 py-2 bg-slate-50 border rounded-xl text-xs outline-none">
+              <option value="">Semua Status</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+            </select>
+          </div>
+
+          <!-- TABLE -->
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                    <th class="p-3.5">Foto</th>
+                    <th class="p-3.5">Barcode</th>
+                    <th class="p-3.5">SKU</th>
+                    <th class="p-3.5">Nama</th>
+                    <th class="p-3.5">Kategori</th>
+                    <th class="p-3.5">Harga Aktif</th>
+                    <th class="p-3.5">Status</th>
+                    <th class="p-3.5 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="prod in filteredProducts" :key="prod.id">
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                      <td class="p-3.5">
+                        <img :src="imageUrls[prod.image_path] || placeholder" class="w-10 h-10 object-cover rounded-lg border">
+                      </td>
+                      <td class="p-3.5 font-mono text-slate-600" x-text="prod.barcode"></td>
+                      <td class="p-3.5 font-mono text-slate-500" x-text="prod.sku"></td>
+                      <td class="p-3.5 font-semibold text-slate-900" x-text="prod.name"></td>
+                      <td class="p-3.5 text-slate-600" x-text="getCategoryName(prod.category_id)"></td>
+                      <td class="p-3.5 font-bold text-slate-900" x-text="activePrice(prod) ? formatRupiah(activePrice(prod).selling_price) : '-'"></td>
+                      <td class="p-3.5">
+                        <span :class="isOn(prod) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'" class="px-2 py-0.5 rounded-full text-[10px] font-bold border" x-text="statusLabel(prod)"></span>
+                      </td>
+                      <td class="p-3.5 text-right space-x-2">
+                        <button @click="openProductModal(prod)" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button @click="toggleProductStatus(prod)" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg"><i data-lucide="power" class="w-4 h-4"></i></button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- CATEGORIES VIEW -->
+        <div x-show="currentView === 'categories'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-900">Kategori Produk</h2>
+            <button @click="openCategoryModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Tambah Kategori</button>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <template x-for="cat in categories" :key="cat.id">
+                <div class="p-3 border rounded-xl flex items-center justify-between bg-slate-50">
+                  <span class="font-bold text-xs text-slate-800" x-text="cat.name"></span>
+                  <div class="flex items-center gap-1">
+                    <button @click="openCategoryModal(cat)" class="p-1 text-blue-600"><i data-lucide="edit-2" class="w-3.5 h-3.5"></i></button>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRICES VIEW -->
+        <div x-show="currentView === 'prices'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-900">Manajemen Harga & Jadwal Promo</h2>
+            <button @click="openPriceModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Set Harga Khusus / Promo</button>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b font-semibold text-slate-600">
+                <tr>
+                  <th class="p-3.5">Produk</th>
+                  <th class="p-3.5">Barcode</th>
+                  <th class="p-3.5">Harga Normal</th>
+                  <th class="p-3.5">Harga Jual Promo</th>
+                  <th class="p-3.5">Mulai</th>
+                  <th class="p-3.5">Berakhir</th>
+                  <th class="p-3.5">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <template x-for="item in priceRules" :key="item.id">
+                  <tr>
+                    <td class="p-3.5 font-semibold" x-text="item.products?.name"></td>
+                    <td class="p-3.5 font-mono text-slate-500" x-text="item.products?.barcode"></td>
+                    <td class="p-3.5 line-through text-slate-400" x-text="formatRupiah(item.normal_price)"></td>
+                    <td class="p-3.5 font-bold text-blue-600" x-text="formatRupiah(item.selling_price)"></td>
+                    <td class="p-3.5" x-text="item.start_date"></td>
+                    <td class="p-3.5" x-text="item.end_date"></td>
+                    <td class="p-3.5"><span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]" x-text="isRunning(item) ? 'AKTIF' : 'TIDAK AKTIF'"></span></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PRICE HISTORY VIEW -->
+        <div x-show="currentView === 'price_history'" class="space-y-6">
+          <h2 class="text-xl font-bold text-slate-900">Riwayat Perubahan Harga</h2>
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b font-semibold text-slate-600">
+                <tr>
+                  <th class="p-3.5">Produk</th>
+                  <th class="p-3.5">Harga Lama</th>
+                  <th class="p-3.5">Harga Baru</th>
+                  <th class="p-3.5">Admin</th>
+                  <th class="p-3.5">Tanggal</th>
+                  <th class="p-3.5">Alasan</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <template x-for="h in priceHistory" :key="h.id">
+                  <tr>
+                    <td class="p-3.5 font-semibold" x-text="h.products?.name"></td>
+                    <td class="p-3.5 text-slate-500" x-text="formatRupiah(h.old_price)"></td>
+                    <td class="p-3.5 font-bold text-emerald-600" x-text="formatRupiah(h.new_price)"></td>
+                    <td class="p-3.5 text-slate-700" x-text="h.changed_by"></td>
+                    <td class="p-3.5 text-slate-400 font-mono" x-text="formatDate(h.created_at)"></td>
+                    <td class="p-3.5 text-slate-600" x-text="h.reason"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PROMOS VIEW -->
+        <div x-show="currentView === 'promos'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-900">Master Promo</h2>
+            <button @click="openPromoModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Buat Promo Baru</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <template x-for="p in promos" :key="p.id">
+              <div class="bg-white rounded-2xl border p-5 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200" x-text="p.promotion_type"></span>
+                  <span class="text-xs font-bold" :class="isRunning(p) ? 'text-emerald-600' : 'text-slate-400'" x-text="isRunning(p) ? 'BERJALAN' : (isOn(p) ? 'TERJADWAL/SELESAI' : 'NONAKTIF')"></span>
+                </div>
+                <h3 class="font-bold text-slate-900 text-base" x-text="p.name"></h3>
+                <p class="text-xs text-slate-500" x-text="p.description"></p>
+                <div class="text-[11px] text-slate-400 font-mono" x-text="p.start_date + ' s/d ' + p.end_date"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- EVENTS VIEW -->
+        <div x-show="currentView === 'events'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-900">Event Berlangsung (Kiosk Banner)</h2>
+            <button @click="openEventModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Tambah Event</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <template x-for="ev in events" :key="ev.id">
+              <div class="bg-white rounded-2xl border overflow-hidden shadow-sm">
+                <div class="p-4 space-y-2">
+                  <div class="font-bold text-sm text-slate-900" x-text="ev.title"></div>
+                  <p class="text-xs text-slate-500 line-clamp-2" x-text="ev.description"></p>
+                  <div class="text-[10px] font-mono text-blue-600" x-text="ev.start_date + ' - ' + ev.end_date"></div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- PWP VIEW -->
+        <div x-show="currentView === 'pwp'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-900">Purchase With Purchase (PWP)</h2>
+            <button @click="openPwpModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Buat Campaign PWP</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <template x-for="pwp in pwpCampaigns" :key="pwp.id">
+              <div class="bg-white rounded-2xl border p-5 shadow-sm space-y-2">
+                <h3 class="font-bold text-slate-900 text-sm" x-text="pwp.name"></h3>
+                <div class="text-xs text-slate-600">Min. Belanja: <span class="font-bold text-blue-600" x-text="formatRupiah(pwp.minimum_purchase)"></span></div>
+                <p class="text-xs text-slate-500" x-text="pwp.description"></p>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- KIOSKS VIEW -->
+        <div x-show="currentView === 'kiosks'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-900">Monitoring Kiosk Retail</h2>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b font-semibold text-slate-600">
+                <tr>
+                  <th class="p-3.5">Kiosk Code</th>
+                  <th class="p-3.5">Nama Device</th>
+                  <th class="p-3.5">Toko</th>
+                  <th class="p-3.5">Status</th>
+                  <th class="p-3.5">Last Online</th>
+                  <th class="p-3.5">Version</th>
+                  <th class="p-3.5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <template x-for="k in kiosks" :key="k.id">
+                  <tr>
+                    <td class="p-3.5 font-bold font-mono text-slate-900" x-text="k.kiosk_code"></td>
+                    <td class="p-3.5 text-slate-700" x-text="k.kiosk_name"></td>
+                    <td class="p-3.5 text-slate-600" x-text="k.stores?.store_name ?? k.stores?.name"></td>
+                    <td class="p-3.5">
+                      <span :class="{
+                        'bg-emerald-50 text-emerald-600 border-emerald-200': kioskState(k) === 'ONLINE',
+                        'bg-red-50 text-red-600 border-red-200': kioskState(k) === 'OFFLINE',
+                        'bg-amber-50 text-amber-600 border-amber-200': kioskState(k) === 'MAINTENANCE' || kioskState(k) === 'NONAKTIF'
+                      }" class="px-2.5 py-0.5 rounded-full font-bold text-[10px] border" x-text="'● ' + kioskState(k)"></span>
+                    </td>
+                    <td class="p-3.5 text-slate-400 font-mono" x-text="formatDate(kioskSeen(k))"></td>
+                    <td class="p-3.5 font-mono text-slate-500" x-text="k.app_version || '-'"></td>
+                    <td class="p-3.5 text-right space-x-2">
+                      <button x-show="typeof k.status === 'boolean'" @click="toggleKioskMaintenance(k)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-[10px] font-semibold text-slate-700">Aktif / Nonaktif</button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- STORES VIEW -->
+        <div x-show="currentView === 'stores'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-900">Daftar Toko / Cabang</h2>
+            <button @click="openStoreModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Tambah Toko</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <template x-for="s in stores" :key="s.id">
+              <div class="bg-white p-4 rounded-2xl border shadow-sm space-y-2">
+                <div class="text-[10px] font-mono font-bold text-blue-600" x-text="s.store_code ?? s.code"></div>
+                <div class="font-bold text-slate-900 text-sm" x-text="s.store_name ?? s.name"></div>
+                <div class="text-xs text-slate-500" x-text="[s.address, s.city].filter(Boolean).join(', ')"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- USERS VIEW -->
+        <div x-show="currentView === 'users'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-900">User Management</h2>
+          </div>
+          <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b font-semibold text-slate-600">
+                <tr>
+                  <th class="p-3.5">Nama</th>
+                  <th class="p-3.5">Role</th>
+                  <th class="p-3.5">Status</th>
+                  <th class="p-3.5">Dibuat</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <template x-for="u in usersList" :key="u.id">
+                  <tr>
+                    <td class="p-3.5 font-semibold text-slate-900" x-text="u.full_name"></td>
+                    <td class="p-3.5 font-bold text-blue-600" x-text="u.role"></td>
+                    <td class="p-3.5"><span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]" x-text="u.is_active === false ? 'NONAKTIF' : 'AKTIF'"></span></td>
+                    <td class="p-3.5 text-slate-400 font-mono" x-text="formatDate(u.created_at)"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ACTIVITY LOGS VIEW -->
+        <div x-show="currentView === 'activity_logs'" class="space-y-6">
+          <h2 class="text-xl font-bold text-slate-900">System Activity Log</h2>
+          <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b font-semibold text-slate-600">
+                <tr>
+                  <th class="p-3.5">User</th>
+                  <th class="p-3.5">Aktivitas</th>
+                  <th class="p-3.5">Objek Target</th>
+                  <th class="p-3.5">Waktu</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <template x-for="log in activityLogs" :key="log.id">
+                  <tr>
+                    <td class="p-3.5 font-semibold text-slate-900" x-text="log.user_email"></td>
+                    <td class="p-3.5 text-slate-700" x-text="log.action"></td>
+                    <td class="p-3.5 font-mono text-slate-500" x-text="log.target"></td>
+                    <td class="p-3.5 text-slate-400 font-mono" x-text="formatDate(log.created_at)"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL TEMPLATES (PRODUCT FORM EXAMPLE)     -->
+  <!-- ========================================== -->
+  <div x-show="modalProductOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" x-cloak>
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-bold text-slate-900 text-base" x-text="productForm.id ? 'Edit Produk' : 'Tambah Produk Baru'"></h3>
+        <button @click="modalProductOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      
+      <form @submit.prevent="saveProduct()" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nama Produk</label>
+          <input type="text" x-model="productForm.name" required class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Barcode</label>
+            <input type="text" x-model="productForm.barcode" required class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">SKU</label>
+            <input type="text" x-model="productForm.sku" required class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Kategori</label>
+            <select x-model="productForm.category_id" class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none">
+              <option value="">Pilih Kategori</option>
+              <template x-for="cat in categories" :key="cat.id">
+                <option :value="cat.id" x-text="cat.name"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Unit</label>
+            <select x-model="productForm.unit" class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none">
+              <option value="PCS">PCS</option>
+              <option value="BOTOL">BOTOL</option>
+              <option value="BOX">BOX</option>
+              <option value="KG">KG</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Merek (opsional)</label>
+          <input type="text" x-model="productForm.brand" class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Upload Foto Produk</label>
+          <input type="file" @change="handleFileUpload($event)" accept="image/*" class="w-full p-2 border rounded-xl text-slate-500">
+        </div>
+
+        <div class="pt-3 flex justify-end gap-2 border-t">
+          <button type="button" @click="modalProductOpen = false" class="px-4 py-2 border rounded-xl font-semibold text-slate-600">BATAL</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold shadow-md shadow-blue-500/20">SIMPAN PRODUK</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- ALPINE APP LOGIC & SUPABASE INTEGRATION    -->
+  <!-- ========================================== -->
+  <script>
+    // SUPABASE CONFIGURATION (Ganti dengan Key Supabase Anda)
+    const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    
+    // Inisialisasi Supabase JS Client
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const IMAGE_BUCKET = 'product-images';
+    const HEARTBEAT_MS = 60000;
+    const PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="100%" height="100%" fill="#f1f5f9"/></svg>');
+
+    function adminApp() {
+      return {
+        // App States
+        session: null,
+        loading: false,
+        sidebarOpen: false,
+        currentView: 'dashboard',
+        currentUserProfile: null,
+
+        // Auth Form
+        loginForm: { email: '', password: '' },
+
+        // Modals
+        modalProductOpen: false,
+        selectedFile: null,
+
+        // Form Data
+        productForm: { id: null, name: '', barcode: '', sku: '', brand: '', category_id: '', unit: 'PCS', image_path: '' },
+
+        // Collections Data
+        products: [],
+        categories: [],
+        priceRules: [],
+        priceHistory: [],
+        promos: [],
+        events: [],
+        pwpCampaigns: [],
+        kiosks: [],
+        stores: [],
+        usersList: [],
+        activityLogs: [],
+        imageUrls: {},
+        placeholder: PLACEHOLDER,
+        booted: false,
+        recentLogs: [],
+        topProducts: [],
+
+        // Statistics
+        stats: { products: 0, promos: 0, events: 0, kiosksOnline: 0, kiosksTotal: 0 },
+
+        // Filtering
+        filters: { productSearch: '', productCategory: '', productStatus: '' },
+
+        async initApp() {
+          const { data: { session } } = await sb.auth.getSession();
+          this.session = session;
+          if (this.session) await this.bootAfterLogin();
+
+          sb.auth.onAuthStateChange(async (_event, session) => {
+            this.session = session;
+            if (session) await this.bootAfterLogin();
+          });
+
+          this.$watch('currentView', () => {
+            this.$nextTick(() => lucide.createIcons());
+          });
+        },
+
+        async bootAfterLogin() {
+          const ok = await this.loadUserProfile();
+          if (!ok) return;
+          await this.fetchAllData();
+          if (!this.booted) {
+            this.booted = true;
+            this.setupRealtimeSubscriptions();
+            this.$nextTick(() => this.initChart());
+          }
+        },
+
+        // ------------------------------------
+        // AUTHENTICATION
+        // ------------------------------------
+        async handleLogin() {
+          this.loading = true;
+          const { data, error } = await sb.auth.signInWithPassword({
+            email: this.loginForm.email,
+            password: this.loginForm.password
+          });
+
+          this.loading = false;
+          if (error) {
+            Swal.fire('Error Login', error.message, 'error');
+          } else {
+            Swal.fire({ icon: 'success', title: 'Berhasil Login', timer: 1200, showConfirmButton: false });
+            this.logActivity('LOGIN', 'User Logged In');
+          }
+        },
+
+        async handleLogout() {
+          await this.logActivity('LOGOUT', 'User Logged Out');
+          await sb.auth.signOut();
+          this.session = null;
+        },
+
+        async loadUserProfile() {
+          if (!this.session?.user) return false;
+          const { data } = await sb.from('admin_users').select('*').eq('id', this.session.user.id).maybeSingle();
+          if (!data || data.is_active === false) {
+            await sb.auth.signOut();
+            this.session = null;
+            this.currentUserProfile = null;
+            Swal.fire('Akses Ditolak', 'Akun ini tidak terdaftar sebagai admin.', 'error');
+            return false;
+          }
+          this.currentUserProfile = data;
+          return true;
+        },
+
+        showForgotAlert() {
+          Swal.fire('Lupa Password', 'Silakan hubungi Super Admin IT untuk melakukan reset kredensial.', 'info');
+        },
+
+        // ------------------------------------
+        // DATA FETCHING & REALTIME
+        // ------------------------------------
+        async fetchAllData() {
+          await Promise.all([
+            this.fetchProducts(),
+            this.fetchCategories(),
+            this.fetchPrices(),
+            this.fetchPriceHistory(),
+            this.fetchPromos(),
+            this.fetchEvents(),
+            this.fetchPwp(),
+            this.fetchKiosks(),
+            this.fetchStores(),
+            this.fetchUsers(),
+            this.fetchLogs()
+          ]);
+          this.calculateStats();
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        async fetchProducts() {
+          const { data } = await sb.from('products').select('*').order('created_at', { ascending: false });
+          this.products = data || [];
+          await this.loadImageUrls();
+        },
+
+        async loadImageUrls() {
+          const paths = [...new Set(this.products.map(p => p.image_path).filter(Boolean))];
+          if (!paths.length) return;
+          const { data } = await sb.storage.from(IMAGE_BUCKET).createSignedUrls(paths, 3600);
+          const map = {};
+          (data || []).forEach(r => { if (r.signedUrl) map[r.path] = r.signedUrl; });
+          this.imageUrls = map;
+        },
+
+        async fetchCategories() {
+          const { data } = await sb.from('categories').select('*').order('name');
+          this.categories = data || [];
+        },
+
+        async fetchPrices() {
+          const { data } = await sb.from('prices').select('*, products(name, barcode)');
+          this.priceRules = data || [];
+        },
+
+        async fetchPriceHistory() {
+          const { data } = await sb.from('price_history').select('*, products(name)').order('created_at', { ascending: false });
+          this.priceHistory = data || [];
+        },
+
+        async fetchPromos() {
+          const { data } = await sb.from('promotions').select('*');
+          this.promos = data || [];
+        },
+
+        async fetchEvents() {
+          const { data } = await sb.from('events').select('*').order('display_order');
+          this.events = data || [];
+        },
+
+        async fetchPwp() {
+          const { data } = await sb.from('pwp_campaigns').select('*');
+          this.pwpCampaigns = data || [];
+        },
+
+        async fetchKiosks() {
+          const { data } = await sb.from('kiosks').select('*, stores(*)');
+          this.kiosks = data || [];
+        },
+
+        async fetchStores() {
+          const { data } = await sb.from('stores').select('*');
+          this.stores = data || [];
+        },
+
+        async fetchUsers() {
+          const { data } = await sb.from('admin_users').select('*').order('created_at');
+          this.usersList = data || [];
+        },
+
+        async fetchLogs() {
+          const { data } = await sb.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(50);
+          this.activityLogs = data || [];
+          this.recentLogs = this.activityLogs.slice(0, 5);
+        },
+
+        setupRealtimeSubscriptions() {
+          // Listen to changes across critical tables
+          sb.channel('admin-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'kiosks' }, () => this.fetchKiosks())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => this.fetchProducts())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'prices' }, () => this.fetchPrices())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'promotions' }, () => { this.fetchPromos().then(() => this.calculateStats()); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => { this.fetchEvents().then(() => this.calculateStats()); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pwp_campaigns' }, () => this.fetchPwp())
+            .subscribe();
+        },
+
+        // ------------------------------------
+        // PRODUCT CRUD & STORAGE
+        // ------------------------------------
+        openProductModal(prod = null) {
+          if (prod) {
+            this.productForm = { ...prod };
+          } else {
+            this.productForm = { id: null, name: '', barcode: '', sku: '', brand: '', category_id: '', unit: 'PCS', image_path: '' };
+          }
+          this.selectedFile = null;
+          this.modalProductOpen = true;
+        },
+
+        handleFileUpload(event) {
+          this.selectedFile = event.target.files[0];
+        },
+
+        async saveProduct() {
+          let imagePath = this.productForm.image_path || null;
+
+          if (this.selectedFile) {
+            const safe = this.selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const fileName = `${Date.now()}_${safe}`;
+            const { error: upErr } = await sb.storage.from(IMAGE_BUCKET).upload(fileName, this.selectedFile);
+            if (upErr) {
+              Swal.fire('Gagal upload foto', upErr.message, 'error');
+              return;
+            }
+            imagePath = fileName;
+          }
+
+          const payload = {
+            name: this.productForm.name,
+            barcode: this.productForm.barcode,
+            sku: this.productForm.sku,
+            brand: this.productForm.brand || null,
+            category_id: this.productForm.category_id || null,
+            unit: this.productForm.unit,
+            image_path: imagePath
+          };
+
+          let error;
+          if (this.productForm.id) {
+            ({ error } = await sb.from('products').update(payload).eq('id', this.productForm.id));
+            if (!error) await this.logActivity('EDIT_PRODUCT', payload.name);
+          } else {
+            ({ error } = await sb.from('products').insert([{ ...payload, status: true }]));
+            if (!error) await this.logActivity('ADD_PRODUCT', payload.name);
+          }
+
+          if (error) {
+            Swal.fire('Gagal menyimpan', error.message, 'error');
+            return;
+          }
+          this.modalProductOpen = false;
+          await this.fetchProducts();
+          Swal.fire('Tersimpan', 'Data produk berhasil diperbarui', 'success');
+        },
+
+        async toggleProductStatus(prod) {
+          const next = !this.isOn(prod);
+          const { error } = await sb.from('products').update({ status: next }).eq('id', prod.id);
+          if (error) { Swal.fire('Gagal', error.message, 'error'); return; }
+          await this.logActivity('TOGGLE_PRODUCT_STATUS', `${prod.name} -> ${next ? 'ACTIVE' : 'INACTIVE'}`);
+          await this.fetchProducts();
+        },
+
+        // ------------------------------------
+        // KIOSK CONTROL
+        // ------------------------------------
+        async toggleKioskMaintenance(kiosk) {
+          if (typeof kiosk.status !== 'boolean') return;
+          const next = !kiosk.status;
+          const { error } = await sb.from('kiosks').update({ status: next }).eq('id', kiosk.id);
+          if (error) { Swal.fire('Gagal', error.message, 'error'); return; }
+          const code = kiosk.kiosk_code;
+          await this.logActivity('UPDATE_KIOSK', `${code} -> ${next ? 'AKTIF' : 'NONAKTIF'}`);
+          await this.fetchKiosks();
+          this.calculateStats();
+          Swal.fire('Kiosk Updated', `${code} sekarang ${next ? 'aktif' : 'nonaktif'}`, 'info');
+        },
+
+        // ------------------------------------
+        // LOGGING & UTILS
+        // ------------------------------------
+        async logActivity(action, target) {
+          await sb.from('activity_logs').insert([{
+            user_email: this.session?.user?.email || 'System',
+            action: action,
+            target: target
+          }]);
+          this.fetchLogs();
+        },
+
+        calculateStats() {
+          this.stats.products = this.products.length;
+          this.stats.promos = this.promos.filter(p => this.isRunning(p)).length;
+          this.stats.events = this.events.filter(e => this.isRunning(e)).length;
+          this.stats.kiosksTotal = this.kiosks.length;
+          this.stats.kiosksOnline = this.kiosks.filter(k => this.kioskState(k) === 'ONLINE').length;
+
+          this.topProducts = [
+            { name: 'LENGKENG BANGKOK', count: 342 },
+            { name: 'MINYAK GORENG 2L', count: 289 },
+            { name: 'SUSU UHT 1L', count: 210 },
+            { name: 'BERAS PREMIUM 5KG', count: 175 }
+          ];
+        },
+
+        get filteredProducts() {
+          return this.products.filter(p => {
+            const q = this.filters.productSearch.toLowerCase();
+            const matchesSearch = (p.name || '').toLowerCase().includes(q) ||
+                                  (p.barcode || '').includes(this.filters.productSearch) ||
+                                  (p.sku || '').toLowerCase().includes(q);
+            const matchesCategory = !this.filters.productCategory || p.category_id === this.filters.productCategory;
+            const matchesStatus = !this.filters.productStatus || (this.isOn(p) ? 'ACTIVE' : 'INACTIVE') === this.filters.productStatus;
+            return matchesSearch && matchesCategory && matchesStatus;
+          });
+        },
+
+        // status boolean (skema kiosk): false = nonaktif
+        isOn(row) { return row && row.status !== false; },
+        statusLabel(row) { return this.isOn(row) ? 'ACTIVE' : 'INACTIVE'; },
+        isRunning(row) {
+          if (!this.isOn(row)) return false;
+          const now = new Date();
+          if (row.start_date && new Date(row.start_date) > now) return false;
+          if (row.end_date && new Date(row.end_date + 'T23:59:59') < now) return false;
+          return true;
+        },
+
+        // Harga aktif produk = baris prices yang sedang berlaku (terbaru)
+        activePrice(prod) {
+          const rows = this.priceRules.filter(r => r.product_id === prod.id && this.isRunning(r));
+          rows.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+          return rows[0] || null;
+        },
+
+        // Status kiosk: dihitung dari waktu heartbeat terakhir
+        kioskSeen(k) {
+          let best = 0;
+          Object.keys(k).forEach(key => {
+            if (/(seen|heartbeat|online|ping)/i.test(key) && typeof k[key] === 'string') {
+              const t = Date.parse(k[key]);
+              if (!isNaN(t) && t > best) best = t;
+            }
+          });
+          return best ? new Date(best).toISOString() : null;
+        },
+        kioskState(k) {
+          if (k.status === false) return 'NONAKTIF';
+          if (typeof k.status === 'string' && k.status.toUpperCase() === 'MAINTENANCE') return 'MAINTENANCE';
+          const seen = this.kioskSeen(k);
+          return seen && (Date.now() - Date.parse(seen)) < HEARTBEAT_MS * 3 ? 'ONLINE' : 'OFFLINE';
+        },
+
+        comingSoon() {
+          Swal.fire('Belum tersedia', 'Fitur tambah/ubah untuk bagian ini belum dibuat di panel. Sementara kelola lewat Supabase.', 'info');
+        },
+        openCategoryModal() { this.comingSoon(); },
+        openPriceModal() { this.comingSoon(); },
+        openPromoModal() { this.comingSoon(); },
+        openEventModal() { this.comingSoon(); },
+        openPwpModal() { this.comingSoon(); },
+        openStoreModal() { this.comingSoon(); },
+
+        getCategoryName(catId) {
+          const cat = this.categories.find(c => c.id === catId);
+          return cat ? cat.name : '-';
+        },
+
+        formatRupiah(num) {
+          return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
+        },
+
+        formatDate(dateStr) {
+          if (!dateStr) return '-';
+          const d = new Date(dateStr);
+          return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        },
+
+        initChart() {
+          const ctx = document.getElementById('chartActivity');
+          if (!ctx) return;
+          new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+              datasets: [{
+                label: 'Total Scan Kiosk',
+                data: [1200, 1900, 1500, 2100, 2800, 3400, 3100],
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                fill: true,
+                tension: 0.3
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+        }
+      }
+    }
+  </script>
+</body>
+</html>
