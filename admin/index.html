@@ -690,8 +690,8 @@
   <!-- ========================================== -->
   <script>
     // SUPABASE CONFIGURATION (Ganti dengan Key Supabase Anda)
-    const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co';
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const SUPABASE_URL = 'https://qwwtawqidgwiabenkuwk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3d3Rhd3FpZGd3aWFiZW5rdXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MzkzOTUsImV4cCI6MjA5ODExNTM5NX0.Q05_kZrzbL7n4FRlVsYOKyh7xrQ2ykPfnMFi6LiLGvg';
     
     // Inisialisasi Supabase JS Client
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1037,8 +1037,9 @@
         isRunning(row) {
           if (!this.isOn(row)) return false;
           const now = new Date();
-          if (row.start_date && new Date(row.start_date) > now) return false;
-          if (row.end_date && new Date(row.end_date + 'T23:59:59') < now) return false;
+          const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
+          if (row.start_date && new Date(dateOnly.test(row.start_date) ? row.start_date + 'T00:00:00' : row.start_date) > now) return false;
+          if (row.end_date && new Date(dateOnly.test(row.end_date) ? row.end_date + 'T23:59:59.999' : row.end_date) < now) return false;
           return true;
         },
 
