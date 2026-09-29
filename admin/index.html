@@ -1,1124 +1,1326 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Price Checker Admin Panel</title>
-  
-  <!-- Inter Font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: {
-            brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- SweetAlert2 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <!-- Supabase JS Client v2 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Alpine.js CDN -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-  <style>
-    [x-cloak] { display: none !important; }
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  </style>
-</head>
-<body class="bg-slate-100 font-sans text-slate-800 antialiased selection:bg-blue-500 selection:text-white"
-      x-data="adminApp()" x-init="initApp()" x-cloak>
-
-  <!-- ========================================== -->
-  <!-- 1. LOGIN SECTION                           -->
-  <!-- ========================================== -->
-  <div x-show="!session" class="min-h-screen flex items-center justify-center p-4 bg-slate-100">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200/80 p-8">
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 mb-4 shadow-inner">
-          <i data-lucide="scan-barcode" class="w-8 h-8"></i>
-        </div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">PRICE CHECKER</h1>
-        <p class="text-sm font-semibold text-blue-600 tracking-wider uppercase mt-1">Admin Panel</p>
-      </div>
-
-      <form @submit.prevent="handleLogin()" class="space-y-5">
-        <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Email</label>
-          <div class="relative">
-            <i data-lucide="mail" class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input type="email" x-model="loginForm.email" required
-                   class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm outline-none"
-                   placeholder="admin@retail.com">
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Password</label>
-          <div class="relative">
-            <i data-lucide="lock" class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input type="password" x-model="loginForm.password" required
-                   class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm outline-none"
-                   placeholder="••••••••">
-          </div>
-        </div>
-
-        <button type="submit" :disabled="loading"
-                class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50">
-          <template x-if="!loading"><span>LOGIN</span></template>
-          <template x-if="loading"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i></template>
-        </button>
-      </form>
-
-      <div class="mt-6 text-center">
-        <a href="#" @click.prevent="showForgotAlert()" class="text-xs font-medium text-blue-600 hover:underline">Lupa Password?</a>
-      </div>
-    </div>
-  </div>
-
-
-  <!-- ========================================== -->
-  <!-- 2. MAIN DASHBOARD LAYOUT                  -->
-  <!-- ========================================== -->
-  <div x-show="session" class="min-h-screen flex flex-col bg-slate-100">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosk Price Checker Retail</title>
     
-    <!-- TOP NAVBAR -->
-    <header class="h-16 bg-white border-b border-slate-200/80 sticky top-0 z-30 px-4 md:px-6 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100">
-          <i data-lucide="menu" class="w-5 h-5"></i>
-        </button>
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg">P</div>
-          <span class="font-bold text-slate-900 tracking-tight hidden sm:inline text-lg">PRICE CHECKER <span class="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">ADMIN</span></span>
-        </div>
-      </div>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Montserrat & Inter for High Legibility -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+    <!-- Supabase JS client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-      <div class="flex items-center gap-4">
-        <div class="relative" x-data="{ open: false }">
-          <button @click="open = !open" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 relative">
-            <i data-lucide="bell" class="w-5 h-5"></i>
-            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600"></span>
-          </button>
-          <div x-show="open" @click.outside="open = false" class="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 text-xs">
-            <div class="px-4 py-2 border-b font-semibold text-slate-700">Notifikasi</div>
-            <div class="px-4 py-3 text-slate-500">Realtime sync aktif untuk seluruh store & kiosk.</div>
-          </div>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                            purple: '#7c3aed',
+                            darkPurple: '#5b21b6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Montserrat', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'kiosk': '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)',
+                        'glow': '0 0 25px rgba(37, 99, 235, 0.35)',
+                        'keypad': '0 4px 0px 0px #cbd5e1'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom UI Tweaks for Kiosk Touchscreen */
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            overflow: hidden;
+        }
+
+        .font-display {
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        /* Glassmorphism */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        /* Keypad press feel */
+        .btn-keypad:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0px 0px #cbd5e1 !important;
+        }
+
+        /* Scanner beam animation */
+        @keyframes scanBeam {
+            0% { top: 10%; opacity: 0.3; }
+            50% { top: 85%; opacity: 1; }
+            100% { top: 10%; opacity: 0.3; }
+        }
+        .animate-scan {
+            animation: scanBeam 2.2s infinite ease-in-out;
+        }
+
+        /* Subtle pulsating effect for scanner target */
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.03); }
+        }
+        .animate-pulse-glow {
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+
+        /* Custom scrollbars for modal contents */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between text-slate-800 antialiased overflow-hidden select-none">
+
+    <!-- 1. HEADER SECTION -->
+    <header class="h-20 bg-white/95 backdrop-blur-md px-8 py-3 flex items-center justify-between border-b border-slate-200/80 shadow-sm z-30 shrink-0">
+        <!-- Logo & App Name -->
+        <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-purple flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                <i class="fa-solid fa-barcode text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black font-display tracking-wider text-slate-900 leading-none">PRICE CHECKER</h1>
+                <p class="text-xs font-semibold tracking-widest text-slate-400 mt-1 uppercase">Retail Kiosk System v2.4</p>
+            </div>
         </div>
 
-        <div class="h-6 w-px bg-slate-200"></div>
+        <!-- Connection Status Indicator & Controls -->
+        <div class="flex items-center space-x-6">
+            <!-- Node Status -->
+            <div id="statusBadge" class="flex items-center space-x-2.5 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 transition-all duration-300">
+                <span class="relative flex h-3 w-3">
+                    <span id="statusPing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span id="statusDot" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span id="statusText" class="text-sm font-bold tracking-wide">● NODE ONLINE</span>
+            </div>
 
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-sm shadow">
-            <span x-text="currentUserProfile?.full_name ? currentUserProfile.full_name.charAt(0).toUpperCase() : 'A'"></span>
-          </div>
-          <div class="hidden md:block text-left">
-            <div class="text-xs font-semibold text-slate-900 leading-none" x-text="currentUserProfile?.full_name || 'Admin User'"></div>
-            <div class="text-[10px] font-bold text-blue-600 uppercase mt-1" x-text="currentUserProfile?.role || 'ADMIN'"></div>
-          </div>
-          <button @click="handleLogout()" class="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-100 ml-1" title="Logout">
-            <i data-lucide="log-out" class="w-5 h-5"></i>
-          </button>
+            <!-- Wifi Indicator -->
+            <div class="text-slate-500 text-lg hover:text-brand-600 transition" title="Sinyal Bagus">
+                <i id="wifiIcon" class="fa-solid fa-wifi text-emerald-600"></i>
+            </div>
+
+            <!-- Settings / Sound Toggle Icon Button -->
+            <button onclick="openSettingsModal()" class="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 transition flex items-center justify-center shadow-inner">
+                <i class="fa-solid fa-gear text-lg"></i>
+            </button>
+
+            <!-- Vertical Divider -->
+            <div class="h-8 w-px bg-slate-200"></div>
+
+            <!-- Real-time Digital Clock & Date -->
+            <div class="text-right">
+                <div id="clockDisplay" class="text-2xl font-black font-display text-slate-900 leading-none tracking-tight">10:24</div>
+                <div id="dateDisplay" class="text-xs font-bold text-slate-400 uppercase mt-0.5 tracking-wider">29 SEP 2026</div>
+            </div>
         </div>
-      </div>
     </header>
 
-    <div class="flex flex-1 overflow-hidden">
-      <!-- SIDEBAR -->
-      <aside class="fixed md:static inset-y-0 left-0 z-20 w-64 bg-white border-r border-slate-200/80 flex flex-col transition-transform duration-200 ease-in-out transform md:translate-x-0"
-             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
-        <div class="p-4 custom-scrollbar overflow-y-auto flex-1 space-y-6">
-          
-          <div>
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Utama</div>
-            <nav class="space-y-1">
-              <a href="#" @click.prevent="currentView = 'dashboard'" :class="currentView === 'dashboard' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
-                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
-              </a>
-            </nav>
-          </div>
-
-          <div>
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Katalog & Harga</div>
-            <nav class="space-y-1">
-              <a href="#" @click.prevent="currentView = 'products'" :class="currentView === 'products' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
-                <i data-lucide="package" class="w-4 h-4"></i> Produk
-              </a>
-              <a href="#" @click.prevent="currentView = 'categories'" :class="currentView === 'categories' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all pl-8 text-xs">
-                <i data-lucide="folder-tree" class="w-3.5 h-3.5"></i> Kategori
-              </a>
-              <a href="#" @click.prevent="currentView = 'prices'" :class="currentView === 'prices' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
-                <i data-lucide="tag" class="w-4 h-4"></i> Harga
-              </a>
-              <a href="#" @click.prevent="currentView = 'price_history'" :class="currentView === 'price_history' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all pl-8 text-xs">
-                <i data-lucide="history" class="w-3.5 h-3.5"></i> Riwayat Harga
-              </a>
-            </nav>
-          </div>
-
-          <div>
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Promosi</div>
-            <nav class="space-y-1">
-              <a href="#" @click.prevent="currentView = 'promos'" :class="currentView === 'promos' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
-                <i data-lucide="percent" class="w-4 h-4"></i> Promo
-              </a>
-              <a href="#" @click.prevent="currentView = 'events'" :class="currentView === 'events' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
-                <i data-lucide="calendar-range" class="w-4 h-4"></i> Event
-              </a>
-              <a href="#" @click.prevent="currentView = 'pwp'" :class="currentView === 'pwp' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
-                <i data-lucide="shopping-bag" class="w-4 h-4"></i> PWP
-              </a>
-            </nav>
-          </div>
-
-          <div>
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Operasional</div>
-            <nav class="space-y-1">
-              <a href="#" @click.prevent="currentView = 'kiosks'" :class="currentView === 'kiosks' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
-                <i data-lucide="monitor" class="w-4 h-4"></i> Kiosk
-              </a>
-              <a href="#" @click.prevent="currentView = 'stores'" :class="currentView === 'stores' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
-                <i data-lucide="store" class="w-4 h-4"></i> Toko
-              </a>
-              <a href="#" @click.prevent="currentView = 'users'" :class="currentView === 'users' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
-                <i data-lucide="users" class="w-4 h-4"></i> User Management
-              </a>
-              <a href="#" @click.prevent="currentView = 'activity_logs'" :class="currentView === 'activity_logs' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all">
-                <i data-lucide="file-text" class="w-4 h-4"></i> Activity Log
-              </a>
-            </nav>
-          </div>
-
-        </div>
-      </aside>
-
-      <!-- CONTENT AREA -->
-      <main class="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-        
-        <!-- DASHBOARD VIEW -->
-        <div x-show="currentView === 'dashboard'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-slate-900">Dashboard Overview</h2>
-            <div class="text-xs text-slate-500 font-medium">Realtime Metrics</div>
-          </div>
-
-          <!-- STATS CARDS -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-              <div class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Total Produk</div>
-              <div class="text-2xl font-bold text-slate-900 mt-2" x-text="stats.products">0</div>
-            </div>
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-              <div class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Promo Aktif</div>
-              <div class="text-2xl font-bold text-blue-600 mt-2" x-text="stats.promos">0</div>
-            </div>
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-              <div class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Event Aktif</div>
-              <div class="text-2xl font-bold text-purple-600 mt-2" x-text="stats.events">0</div>
-            </div>
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-              <div class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Kiosk Online</div>
-              <div class="text-2xl font-bold text-emerald-600 mt-2"><span x-text="stats.kiosksOnline">0</span> / <span x-text="stats.kiosksTotal">0</span></div>
-            </div>
-          </div>
-
-          <!-- CHARTS SECTION -->
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-              <h3 class="text-sm font-bold text-slate-900 mb-4">Aktivitas Price Checker (7 Hari Terakhir)</h3>
-              <div class="h-64">
-                <canvas id="chartActivity"></canvas>
-              </div>
-            </div>
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-              <h3 class="text-sm font-bold text-slate-900 mb-4">Top Product Search</h3>
-              <div class="space-y-3">
-                <template x-for="(prod, idx) in topProducts" :key="idx">
-                  <div class="flex items-center justify-between text-xs p-2 rounded-xl bg-slate-50">
-                    <span class="font-medium text-slate-700 truncate max-w-[150px]" x-text="prod.name"></span>
-                    <span class="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full" x-text="prod.count + ' scans'"></span>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </div>
-
-          <!-- RECENT ACTIVITY -->
-          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5">
-            <h3 class="text-sm font-bold text-slate-900 mb-4">Aktivitas Terbaru</h3>
-            <div class="divide-y divide-slate-100">
-              <template x-for="log in recentLogs" :key="log.id">
-                <div class="py-3 flex items-center justify-between text-xs">
-                  <div>
-                    <span class="font-semibold text-slate-900" x-text="log.user_email"></span>
-                    <span class="text-slate-500 mx-1">—</span>
-                    <span class="text-slate-700" x-text="log.action"></span>
-                    <span class="text-slate-400 ml-1" x-text="log.target ? '(' + log.target + ')' : ''"></span>
-                  </div>
-                  <div class="text-slate-400 font-mono text-[10px]" x-text="formatDate(log.created_at)"></div>
+    <!-- 2. STANDBY SCREEN VIEW (Default State) -->
+    <div id="standbyScreen" class="fixed inset-0 top-20 bg-gradient-to-b from-slate-900 via-slate-800 to-brand-900 text-white z-20 flex flex-col justify-between p-10 transition-opacity duration-500">
+        <div class="max-w-4xl mx-auto w-full flex-1 flex flex-col items-center justify-center text-center">
+            
+            <!-- Animated Scanner Target Visual -->
+            <div onclick="focusBarcodeInput()" class="relative w-72 h-56 rounded-3xl border-2 border-dashed border-brand-500/50 bg-slate-800/60 p-6 flex flex-col items-center justify-center mb-8 shadow-glow animate-pulse-glow cursor-pointer group">
+                <div class="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+                    <div class="w-full h-1 bg-red-500 shadow-[0_0_15px_#ef4444] absolute left-0 animate-scan"></div>
                 </div>
-              </template>
+                <i class="fa-solid fa-barcode text-7xl text-brand-500 group-hover:scale-110 transition duration-300"></i>
+                <div class="mt-4 text-xs font-bold uppercase tracking-widest text-slate-400">Laser Scanner Active</div>
             </div>
-          </div>
-        </div>
 
-        <!-- PRODUCTS VIEW -->
-        <div x-show="currentView === 'products'" class="space-y-6">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 class="text-4xl font-black font-display text-white tracking-wide mb-3">PRICE CHECKER</h2>
+            <p class="text-xl text-slate-300 font-medium max-w-xl">Silakan scan barcode produk untuk melihat detail harga.</p>
+
+            <!-- Touch Prompt Badge -->
+            <div class="mt-8 px-6 py-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-brand-100 font-semibold text-sm flex items-center space-x-3 shadow-lg">
+                <i class="fa-solid fa-hand-pointer text-brand-500 animate-bounce"></i>
+                <span>Ketuk Layar / Gunakan Keypad untuk Memulai</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. MAIN CONTENT LAYOUT (16:9 Touch Area) -->
+    <main class="flex-1 flex overflow-hidden p-6 gap-6 max-w-[1920px] w-full mx-auto">
+
+        <!-- SIDEBAR KIRI: PUSAT INFORMASI & KEYPAD (28% Width) -->
+        <aside class="w-[28%] min-w-[340px] max-w-[420px] bg-white rounded-3xl p-6 border border-slate-200/80 shadow-kiosk flex flex-col justify-between shrink-0">
             <div>
-              <h2 class="text-xl font-bold text-slate-900">Manajemen Produk</h2>
-              <p class="text-xs text-slate-500">Kelola master data seluruh katalog produk retail.</p>
+                <!-- Sidebar Title -->
+                <div class="flex items-center space-x-3 mb-4 pb-3 border-b border-slate-100">
+                    <div class="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-calculator text-base"></i>
+                    </div>
+                    <h2 class="text-lg font-black font-display uppercase tracking-wider text-slate-800">PUSAT INFORMASI</h2>
+                </div>
+
+                <!-- Input Field -->
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Scan / Ketik Kode</label>
+                    <div class="relative">
+                        <input type="text" id="barcodeInput" placeholder="Ketik / Scan..." readOnly
+                            class="w-full bg-slate-50 border-2 border-slate-200 focus:border-brand-500 rounded-2xl py-3.5 px-4 pr-12 text-2xl font-bold font-mono text-slate-900 tracking-wider transition outline-none shadow-inner" />
+                        <button onclick="clearInput()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-2 text-lg">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button onclick="handleSearch()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-600 to-brand-purple hover:from-brand-700 hover:to-brand-darkPurple text-white font-extrabold font-display text-lg tracking-wider shadow-lg shadow-blue-500/25 active:scale-[0.98] transition flex items-center justify-center space-x-3">
+                    <i class="fa-solid fa-magnifying-glass text-xl"></i>
+                    <span>CEK HARGA</span>
+                </button>
             </div>
-            <button @click="openProductModal()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs flex items-center gap-2 shadow-md shadow-blue-500/20">
-              <i data-lucide="plus" class="w-4 h-4"></i> Tambah Produk
+
+            <!-- TOUCH NUMERIC KEYPAD -->
+            <div class="mt-4">
+                <div class="grid grid-cols-3 gap-2.5">
+                    <button onclick="pressKey('1')" class="btn-keypad h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold font-display text-2xl border border-slate-200/80 shadow-keypad transition flex items-center justify-center">1</button>
+                    <button onclick="pressKey('2')" class="btn-keypad h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold font-display text-2xl border border-slate-200/80 shadow-keypad transition flex items-center justify-center">2</button>
+                    <button onclick="pressKey('3')" class="btn-keypad h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold font-display text-2xl border border-slate-200/80 shadow-keypad transition flex items-center justify-center">3</button>
+
+                    <button onclick="pressKey('4')" class="btn-keypad h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold font-display text-2xl border border-slate-200/80 shadow-keypad transition flex items-center justify-center">4</button>
+                    <button onclick="pressKey('5')" class="btn-keypad h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold font-display text-2xl border border-slate-200/80 shadow-keypad transition flex items-center justify-center">5</button>
+                    <button onclick="pressKey('6')" class="btn-keypad h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold font-display text-2xl border border-slate-200/80 shadow-keypad transition flex items-center justify-center">6</button>
+
+                    <button onclick="pressKey('7')" class="btn-keypad h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold font-display text-2xl border border-slate-200/80 shadow-keypad transition flex items-center justify-center">7</button>
+                    <button onclick="pressKey('8')" class="btn-keypad h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold font-display text-2xl border border-slate-200/80 shadow-keypad transition flex items-center justify-center">8</button>
+                    <button onclick="pressKey('9')" class="btn-keypad h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold font-display text-2xl border border-slate-200/80 shadow-keypad transition flex items-center justify-center">9</button>
+
+                    <button onclick="pressKey('back')" class="btn-keypad h-16 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xl border border-rose-200 shadow-keypad transition flex items-center justify-center">
+                        <i class="fa-solid fa-delete-left"></i>
+                    </button>
+                    <button onclick="pressKey('0')" class="btn-keypad h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold font-display text-2xl border border-slate-200/80 shadow-keypad transition flex items-center justify-center">0</button>
+                    <button onclick="handleSearch()" class="btn-keypad h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold font-display text-2xl border border-emerald-600 shadow-keypad transition flex items-center justify-center">
+                        ↵
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- AREA UTAMA: INFORMASI PRODUK, FOTO, EVENT & PWP (72% Width) -->
+        <section class="flex-1 flex flex-col justify-between overflow-y-auto space-y-5 pr-1">
+
+            <!-- TOP BANNER AUTO RESET COUNTER -->
+            <div id="resetTimerBar" class="flex items-center justify-between bg-slate-100/80 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-slate-200/80 text-slate-600 text-xs font-semibold">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-info text-brand-600"></i>
+                    <span>Tampilan harga aktif. Ketuk layar kapan saja untuk memuat ulang durasi.</span>
+                </div>
+                <div class="flex items-center space-x-2 bg-white px-3 py-1 rounded-xl shadow-sm border border-slate-200 font-mono text-xs font-bold text-brand-700">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Reset dalam <strong id="countdownSeconds" class="text-sm">15</strong>s</span>
+                </div>
+            </div>
+
+            <!-- PRODUCT DISPLAY CARD -->
+            <div class="bg-white rounded-3xl p-7 border border-slate-200/80 shadow-kiosk flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
+                <!-- Promo Watermark Tag -->
+                <div id="promoBadge" class="absolute top-0 left-0 bg-gradient-to-r from-amber-500 to-rose-500 text-white font-extrabold text-xs tracking-widest uppercase px-6 py-1.5 rounded-br-2xl shadow-md flex items-center space-x-2">
+                    <i class="fa-solid fa-fire text-amber-200"></i>
+                    <span>PROMO SPESIAL</span>
+                </div>
+
+                <!-- Product Details Column -->
+                <div class="flex-1 w-full pt-4">
+                    <div class="text-xs font-bold font-mono tracking-widest text-slate-400 uppercase mb-1">
+                        KODE PRODUK: <span id="displaySKU" class="text-slate-800 font-extrabold">—</span>
+                    </div>
+
+                    <!-- Product Name (Highest Priority visual) -->
+                    <h2 id="displayName" class="text-4xl md:text-5xl font-black font-display text-slate-900 tracking-tight leading-tight mb-4">
+                        SCAN BARCODE PRODUK
+                    </h2>
+
+                    <!-- PRICE HIERARCHY -->
+                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100 mb-4 inline-block w-full">
+                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Harga Promo Hari Ini:</div>
+                        
+                        <div class="flex items-baseline space-x-4 flex-wrap">
+                            <!-- Selling Price (HUGE FONT) -->
+                            <div id="displaySellingPrice" class="text-5xl md:text-6xl font-black font-display text-brand-600 tracking-tight">
+                                Rp 44.750
+                            </div>
+                            
+                            <!-- Normal Price Strikethrough -->
+                            <div id="displayNormalPrice" class="text-2xl font-bold text-slate-400 line-through">
+                                Rp 56.700
+                            </div>
+                        </div>
+
+                        <!-- Savings Badge -->
+                        <div id="savingsBadge" class="mt-3 inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 text-xs font-extrabold">
+                            <i class="fa-solid fa-tag"></i>
+                            <span>HEMAT Rp 11.950 (21%)</span>
+                        </div>
+                    </div>
+
+                    <!-- Meta Information -->
+                    <div class="flex items-center space-x-6 text-xs font-semibold text-slate-500">
+                        <div class="flex items-center space-x-1.5">
+                            <i class="fa-solid fa-box text-slate-400"></i>
+                            <span>Satuan: <strong id="displayUnit" class="text-slate-700">PER KG</strong></span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <i class="fa-solid fa-calendar-days text-slate-400"></i>
+                            <span>Periode: <strong id="displayPeriod" class="text-slate-700">01 Sep – 30 Sep 2026</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Photo Card -->
+                <div class="w-full md:w-64 h-64 rounded-2xl bg-slate-50 border border-slate-200/80 p-4 flex flex-col items-center justify-center shrink-0 shadow-inner relative group">
+                    <img id="displayImage" src="https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=500&auto=format&fit=crop&q=80" 
+                        alt="Product Image" 
+                        class="w-full h-full object-contain rounded-xl transition duration-300 group-hover:scale-105"
+                        onerror="this.onerror=null; this.src='https://placehold.co/400x400/e2e8f0/475569?text=FOTO+PRODUK';" />
+                    
+                    <div class="absolute bottom-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-slate-500 shadow-sm border border-slate-200">
+                        OFFICIAL RETAIL PHOTO
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: EVENT BERLANGSUNG -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-kiosk">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-black font-display text-slate-900 uppercase tracking-wide">EVENT BERLANGSUNG</h3>
+                        <p class="text-xs text-slate-400 font-medium">Nikmati berbagai penawaran spesial untuk Anda</p>
+                    </div>
+                    <span class="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full" id="eventCount">3 Event Aktif</span>
+                </div>
+
+                <!-- Kartu event dirender dari data Supabase / cache -->
+                <div id="eventGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+            </div>
+
+            <!-- SECTION: PWP (Purchase With Purchase) BANNER -->
+            <div id="pwpBanner" class="bg-gradient-to-r from-brand-600 via-blue-600 to-brand-purple rounded-3xl p-5 text-white shadow-lg flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+                        <i class="fa-solid fa-basket-shopping text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-black uppercase tracking-widest bg-amber-400 text-slate-900 px-2 py-0.5 rounded-md">PWP</span>
+                            <h4 id="pwpBannerTitle" class="text-base font-extrabold font-display">Pembelian dengan Produk Pilihan</h4>
+                        </div>
+                        <p id="pwpBannerDesc" class="text-xs text-blue-100 mt-0.5">Belanja minimal Rp 100.000, tebus murah produk pilihan PWP hingga 50%!</p>
+                    </div>
+                </div>
+
+                <button onclick="openPWPModal()" class="px-6 py-3 rounded-2xl bg-white hover:bg-slate-100 active:scale-95 text-brand-700 font-extrabold text-xs tracking-wider uppercase transition shadow-md shrink-0 flex items-center space-x-2">
+                    <span>LIHAT DETAIL</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- 4. MODALS & OVERLAYS -->
+
+    <!-- A. PRODUCT NOT FOUND MODAL -->
+    <div id="notFoundModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-6 hidden">
+        <div class="bg-white rounded-3xl p-8 max-w-lg w-full text-center shadow-2xl border border-slate-200 animate-scaleUp">
+            <div class="w-20 h-20 rounded-full bg-rose-100 text-rose-500 mx-auto flex items-center justify-center mb-5 text-3xl shadow-inner">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-2xl font-black font-display text-slate-900 mb-2">Produk Tidak Ditemukan</h3>
+            <p class="text-slate-500 text-sm mb-6">Maaf, produk dengan kode <strong id="notFoundCode" class="text-slate-800 font-mono">123456</strong> tidak terdaftar dalam sistem toko kami saat ini.</p>
+            
+            <div class="flex space-x-3">
+                <button onclick="closeNotFoundModal()" class="flex-1 py-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-sm transition">
+                    COBA LAGI
+                </button>
+                <button onclick="returnToStandby()" class="flex-1 py-4 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-sm shadow-md transition">
+                    KEMBALI UTAMA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KIOSK NONAKTIF (dikontrol dari panel admin) -->
+    <div id="kioskDisabledOverlay" class="fixed inset-0 bg-slate-900 text-white z-[70] flex flex-col items-center justify-center text-center p-10 hidden">
+        <i class="fa-solid fa-screwdriver-wrench text-6xl text-amber-400 mb-6"></i>
+        <h2 class="text-3xl font-black font-display mb-3">KIOSK SEDANG TIDAK AKTIF</h2>
+        <p class="text-slate-300 text-lg max-w-md">Mesin cek harga ini sedang dalam perawatan. Silakan tanyakan harga kepada petugas toko.</p>
+    </div>
+
+    <!-- B. PROMO DETAIL MODAL -->
+    <div id="promoModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-6 hidden">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200">
+            <div class="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mb-4 text-2xl">
+                <i class="fa-solid fa-bullhorn"></i>
+            </div>
+            <h3 id="modalPromoTitle" class="text-xl font-black font-display text-slate-900 mb-2">Judul Promo</h3>
+            <p id="modalPromoDesc" class="text-slate-600 text-sm mb-4 leading-relaxed">Deskripsi detail promo akan muncul di sini.</p>
+            
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 mb-6 flex items-center justify-between text-xs font-bold text-slate-500">
+                <span>Periode Event:</span>
+                <span id="modalPromoPeriod" class="text-brand-600">10 Sep - 30 Sep 2026</span>
+            </div>
+
+            <button onclick="closePromoModal()" class="w-full py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-sm transition">
+                MENGERTI
             </button>
-          </div>
-
-          <!-- FILTER BAR -->
-          <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3">
-            <input type="text" x-model="filters.productSearch" placeholder="Cari nama, barcode, SKU..." class="flex-1 px-3 py-2 bg-slate-50 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500">
-            <select x-model="filters.productCategory" class="px-3 py-2 bg-slate-50 border rounded-xl text-xs outline-none">
-              <option value="">Semua Kategori</option>
-              <template x-for="cat in categories" :key="cat.id">
-                <option :value="cat.id" x-text="cat.name"></option>
-              </template>
-            </select>
-            <select x-model="filters.productStatus" class="px-3 py-2 bg-slate-50 border rounded-xl text-xs outline-none">
-              <option value="">Semua Status</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-            </select>
-          </div>
-
-          <!-- TABLE -->
-          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                    <th class="p-3.5">Foto</th>
-                    <th class="p-3.5">Barcode</th>
-                    <th class="p-3.5">SKU</th>
-                    <th class="p-3.5">Nama</th>
-                    <th class="p-3.5">Kategori</th>
-                    <th class="p-3.5">Harga Aktif</th>
-                    <th class="p-3.5">Status</th>
-                    <th class="p-3.5 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                  <template x-for="prod in filteredProducts" :key="prod.id">
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                      <td class="p-3.5">
-                        <img :src="imageUrls[prod.image_path] || placeholder" class="w-10 h-10 object-cover rounded-lg border">
-                      </td>
-                      <td class="p-3.5 font-mono text-slate-600" x-text="prod.barcode"></td>
-                      <td class="p-3.5 font-mono text-slate-500" x-text="prod.sku"></td>
-                      <td class="p-3.5 font-semibold text-slate-900" x-text="prod.name"></td>
-                      <td class="p-3.5 text-slate-600" x-text="getCategoryName(prod.category_id)"></td>
-                      <td class="p-3.5 font-bold text-slate-900" x-text="activePrice(prod) ? formatRupiah(activePrice(prod).selling_price) : '-'"></td>
-                      <td class="p-3.5">
-                        <span :class="isOn(prod) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'" class="px-2 py-0.5 rounded-full text-[10px] font-bold border" x-text="statusLabel(prod)"></span>
-                      </td>
-                      <td class="p-3.5 text-right space-x-2">
-                        <button @click="openProductModal(prod)" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                        <button @click="toggleProductStatus(prod)" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg"><i data-lucide="power" class="w-4 h-4"></i></button>
-                      </td>
-                    </tr>
-                  </template>
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
-
-        <!-- CATEGORIES VIEW -->
-        <div x-show="currentView === 'categories'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-slate-900">Kategori Produk</h2>
-            <button @click="openCategoryModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Tambah Kategori</button>
-          </div>
-          <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <template x-for="cat in categories" :key="cat.id">
-                <div class="p-3 border rounded-xl flex items-center justify-between bg-slate-50">
-                  <span class="font-bold text-xs text-slate-800" x-text="cat.name"></span>
-                  <div class="flex items-center gap-1">
-                    <button @click="openCategoryModal(cat)" class="p-1 text-blue-600"><i data-lucide="edit-2" class="w-3.5 h-3.5"></i></button>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-
-        <!-- PRICES VIEW -->
-        <div x-show="currentView === 'prices'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-slate-900">Manajemen Harga & Jadwal Promo</h2>
-            <button @click="openPriceModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Set Harga Khusus / Promo</button>
-          </div>
-          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 border-b font-semibold text-slate-600">
-                <tr>
-                  <th class="p-3.5">Produk</th>
-                  <th class="p-3.5">Barcode</th>
-                  <th class="p-3.5">Harga Normal</th>
-                  <th class="p-3.5">Harga Jual Promo</th>
-                  <th class="p-3.5">Mulai</th>
-                  <th class="p-3.5">Berakhir</th>
-                  <th class="p-3.5">Status</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y">
-                <template x-for="item in priceRules" :key="item.id">
-                  <tr>
-                    <td class="p-3.5 font-semibold" x-text="item.products?.name"></td>
-                    <td class="p-3.5 font-mono text-slate-500" x-text="item.products?.barcode"></td>
-                    <td class="p-3.5 line-through text-slate-400" x-text="formatRupiah(item.normal_price)"></td>
-                    <td class="p-3.5 font-bold text-blue-600" x-text="formatRupiah(item.selling_price)"></td>
-                    <td class="p-3.5" x-text="item.start_date"></td>
-                    <td class="p-3.5" x-text="item.end_date"></td>
-                    <td class="p-3.5"><span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]" x-text="isRunning(item) ? 'AKTIF' : 'TIDAK AKTIF'"></span></td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- PRICE HISTORY VIEW -->
-        <div x-show="currentView === 'price_history'" class="space-y-6">
-          <h2 class="text-xl font-bold text-slate-900">Riwayat Perubahan Harga</h2>
-          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 border-b font-semibold text-slate-600">
-                <tr>
-                  <th class="p-3.5">Produk</th>
-                  <th class="p-3.5">Harga Lama</th>
-                  <th class="p-3.5">Harga Baru</th>
-                  <th class="p-3.5">Admin</th>
-                  <th class="p-3.5">Tanggal</th>
-                  <th class="p-3.5">Alasan</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y">
-                <template x-for="h in priceHistory" :key="h.id">
-                  <tr>
-                    <td class="p-3.5 font-semibold" x-text="h.products?.name"></td>
-                    <td class="p-3.5 text-slate-500" x-text="formatRupiah(h.old_price)"></td>
-                    <td class="p-3.5 font-bold text-emerald-600" x-text="formatRupiah(h.new_price)"></td>
-                    <td class="p-3.5 text-slate-700" x-text="h.changed_by"></td>
-                    <td class="p-3.5 text-slate-400 font-mono" x-text="formatDate(h.created_at)"></td>
-                    <td class="p-3.5 text-slate-600" x-text="h.reason"></td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- PROMOS VIEW -->
-        <div x-show="currentView === 'promos'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-slate-900">Master Promo</h2>
-            <button @click="openPromoModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Buat Promo Baru</button>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <template x-for="p in promos" :key="p.id">
-              <div class="bg-white rounded-2xl border p-5 shadow-sm space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200" x-text="p.promotion_type"></span>
-                  <span class="text-xs font-bold" :class="isRunning(p) ? 'text-emerald-600' : 'text-slate-400'" x-text="isRunning(p) ? 'BERJALAN' : (isOn(p) ? 'TERJADWAL/SELESAI' : 'NONAKTIF')"></span>
-                </div>
-                <h3 class="font-bold text-slate-900 text-base" x-text="p.name"></h3>
-                <p class="text-xs text-slate-500" x-text="p.description"></p>
-                <div class="text-[11px] text-slate-400 font-mono" x-text="p.start_date + ' s/d ' + p.end_date"></div>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <!-- EVENTS VIEW -->
-        <div x-show="currentView === 'events'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-slate-900">Event Berlangsung (Kiosk Banner)</h2>
-            <button @click="openEventModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Tambah Event</button>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <template x-for="ev in events" :key="ev.id">
-              <div class="bg-white rounded-2xl border overflow-hidden shadow-sm">
-                <div class="p-4 space-y-2">
-                  <div class="font-bold text-sm text-slate-900" x-text="ev.title"></div>
-                  <p class="text-xs text-slate-500 line-clamp-2" x-text="ev.description"></p>
-                  <div class="text-[10px] font-mono text-blue-600" x-text="ev.start_date + ' - ' + ev.end_date"></div>
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <!-- PWP VIEW -->
-        <div x-show="currentView === 'pwp'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-slate-900">Purchase With Purchase (PWP)</h2>
-            <button @click="openPwpModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Buat Campaign PWP</button>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <template x-for="pwp in pwpCampaigns" :key="pwp.id">
-              <div class="bg-white rounded-2xl border p-5 shadow-sm space-y-2">
-                <h3 class="font-bold text-slate-900 text-sm" x-text="pwp.name"></h3>
-                <div class="text-xs text-slate-600">Min. Belanja: <span class="font-bold text-blue-600" x-text="formatRupiah(pwp.minimum_purchase)"></span></div>
-                <p class="text-xs text-slate-500" x-text="pwp.description"></p>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <!-- KIOSKS VIEW -->
-        <div x-show="currentView === 'kiosks'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-slate-900">Monitoring Kiosk Retail</h2>
-          </div>
-          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 border-b font-semibold text-slate-600">
-                <tr>
-                  <th class="p-3.5">Kiosk Code</th>
-                  <th class="p-3.5">Nama Device</th>
-                  <th class="p-3.5">Toko</th>
-                  <th class="p-3.5">Status</th>
-                  <th class="p-3.5">Last Online</th>
-                  <th class="p-3.5">Version</th>
-                  <th class="p-3.5 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y">
-                <template x-for="k in kiosks" :key="k.id">
-                  <tr>
-                    <td class="p-3.5 font-bold font-mono text-slate-900" x-text="k.kiosk_code"></td>
-                    <td class="p-3.5 text-slate-700" x-text="k.kiosk_name"></td>
-                    <td class="p-3.5 text-slate-600" x-text="k.stores?.store_name ?? k.stores?.name"></td>
-                    <td class="p-3.5">
-                      <span :class="{
-                        'bg-emerald-50 text-emerald-600 border-emerald-200': kioskState(k) === 'ONLINE',
-                        'bg-red-50 text-red-600 border-red-200': kioskState(k) === 'OFFLINE',
-                        'bg-amber-50 text-amber-600 border-amber-200': kioskState(k) === 'MAINTENANCE' || kioskState(k) === 'NONAKTIF'
-                      }" class="px-2.5 py-0.5 rounded-full font-bold text-[10px] border" x-text="'● ' + kioskState(k)"></span>
-                    </td>
-                    <td class="p-3.5 text-slate-400 font-mono" x-text="formatDate(kioskSeen(k))"></td>
-                    <td class="p-3.5 font-mono text-slate-500" x-text="k.app_version || '-'"></td>
-                    <td class="p-3.5 text-right space-x-2">
-                      <button x-show="typeof k.status === 'boolean'" @click="toggleKioskMaintenance(k)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-[10px] font-semibold text-slate-700">Aktif / Nonaktif</button>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- STORES VIEW -->
-        <div x-show="currentView === 'stores'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-slate-900">Daftar Toko / Cabang</h2>
-            <button @click="openStoreModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold">+ Tambah Toko</button>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <template x-for="s in stores" :key="s.id">
-              <div class="bg-white p-4 rounded-2xl border shadow-sm space-y-2">
-                <div class="text-[10px] font-mono font-bold text-blue-600" x-text="s.store_code ?? s.code"></div>
-                <div class="font-bold text-slate-900 text-sm" x-text="s.store_name ?? s.name"></div>
-                <div class="text-xs text-slate-500" x-text="[s.address, s.city].filter(Boolean).join(', ')"></div>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <!-- USERS VIEW -->
-        <div x-show="currentView === 'users'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-slate-900">User Management</h2>
-          </div>
-          <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 border-b font-semibold text-slate-600">
-                <tr>
-                  <th class="p-3.5">Nama</th>
-                  <th class="p-3.5">Role</th>
-                  <th class="p-3.5">Status</th>
-                  <th class="p-3.5">Dibuat</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y">
-                <template x-for="u in usersList" :key="u.id">
-                  <tr>
-                    <td class="p-3.5 font-semibold text-slate-900" x-text="u.full_name"></td>
-                    <td class="p-3.5 font-bold text-blue-600" x-text="u.role"></td>
-                    <td class="p-3.5"><span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]" x-text="u.is_active === false ? 'NONAKTIF' : 'AKTIF'"></span></td>
-                    <td class="p-3.5 text-slate-400 font-mono" x-text="formatDate(u.created_at)"></td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- ACTIVITY LOGS VIEW -->
-        <div x-show="currentView === 'activity_logs'" class="space-y-6">
-          <h2 class="text-xl font-bold text-slate-900">System Activity Log</h2>
-          <div class="bg-white rounded-2xl border shadow-sm overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 border-b font-semibold text-slate-600">
-                <tr>
-                  <th class="p-3.5">User</th>
-                  <th class="p-3.5">Aktivitas</th>
-                  <th class="p-3.5">Objek Target</th>
-                  <th class="p-3.5">Waktu</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y">
-                <template x-for="log in activityLogs" :key="log.id">
-                  <tr>
-                    <td class="p-3.5 font-semibold text-slate-900" x-text="log.user_email"></td>
-                    <td class="p-3.5 text-slate-700" x-text="log.action"></td>
-                    <td class="p-3.5 font-mono text-slate-500" x-text="log.target"></td>
-                    <td class="p-3.5 text-slate-400 font-mono" x-text="formatDate(log.created_at)"></td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </main>
     </div>
-  </div>
 
+    <!-- C. PWP DETAILS MODAL -->
+    <div id="pwpModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-6 hidden">
+        <div class="bg-white rounded-3xl p-8 max-w-xl w-full shadow-2xl border border-slate-200">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-xl font-black font-display text-slate-900">PRODUK TEBUS MURAH (PWP)</h3>
+                    <p id="pwpModalSubtitle" class="text-xs text-slate-500"></p>
+                </div>
+                <button onclick="closePWPModal()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
 
-  <!-- ========================================== -->
-  <!-- MODAL TEMPLATES (PRODUCT FORM EXAMPLE)     -->
-  <!-- ========================================== -->
-  <div x-show="modalProductOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" x-cloak>
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-      <div class="flex items-center justify-between border-b pb-3">
-        <h3 class="font-bold text-slate-900 text-base" x-text="productForm.id ? 'Edit Produk' : 'Tambah Produk Baru'"></h3>
-        <button @click="modalProductOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-      
-      <form @submit.prevent="saveProduct()" class="space-y-4 text-xs">
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Nama Produk</label>
-          <input type="text" x-model="productForm.name" required class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+            <div id="pwpModalList" class="space-y-3 max-h-80 overflow-y-auto pr-1"></div>
+
+            <button onclick="closePWPModal()" class="w-full mt-6 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-sm transition">
+                TUTUP
+            </button>
         </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Barcode</label>
-            <input type="text" x-model="productForm.barcode" required class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono">
-          </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">SKU</label>
-            <input type="text" x-model="productForm.sku" required class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Kategori</label>
-            <select x-model="productForm.category_id" class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none">
-              <option value="">Pilih Kategori</option>
-              <template x-for="cat in categories" :key="cat.id">
-                <option :value="cat.id" x-text="cat.name"></option>
-              </template>
-            </select>
-          </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Unit</label>
-            <select x-model="productForm.unit" class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none">
-              <option value="PCS">PCS</option>
-              <option value="BOTOL">BOTOL</option>
-              <option value="BOX">BOX</option>
-              <option value="KG">KG</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Merek (opsional)</label>
-          <input type="text" x-model="productForm.brand" class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Upload Foto Produk</label>
-          <input type="file" @change="handleFileUpload($event)" accept="image/*" class="w-full p-2 border rounded-xl text-slate-500">
-        </div>
-
-        <div class="pt-3 flex justify-end gap-2 border-t">
-          <button type="button" @click="modalProductOpen = false" class="px-4 py-2 border rounded-xl font-semibold text-slate-600">BATAL</button>
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold shadow-md shadow-blue-500/20">SIMPAN PRODUK</button>
-        </div>
-      </form>
     </div>
-  </div>
 
+    <!-- D. CONFIG & SETTINGS MODAL -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-6 hidden">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200">
+            <h3 class="text-xl font-black font-display text-slate-900 mb-4 flex items-center space-x-2">
+                <i class="fa-solid fa-sliders text-brand-600"></i>
+                <span>Pengaturan Kiosk Kios Price Checker</span>
+            </h3>
 
-  <!-- ========================================== -->
-  <!-- ALPINE APP LOGIC & SUPABASE INTEGRATION    -->
-  <!-- ========================================== -->
-  <script>
-    // SUPABASE CONFIGURATION (Ganti dengan Key Supabase Anda)
-    const SUPABASE_URL = 'https://qwwtawqidgwiabenkuwk.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3d3Rhd3FpZGd3aWFiZW5rdXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MzkzOTUsImV4cCI6MjA5ODExNTM5NX0.Q05_kZrzbL7n4FRlVsYOKyh7xrQ2ykPfnMFi6LiLGvg';
-    
-    // Inisialisasi Supabase JS Client
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const IMAGE_BUCKET = 'product-images';
-    const HEARTBEAT_MS = 60000;
-    const PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="100%" height="100%" fill="#f1f5f9"/></svg>');
+            <div class="space-y-4">
+                <!-- Toggle Node Status -->
+                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div>
+                        <div class="text-sm font-bold text-slate-800">Simulasi Server Node</div>
+                        <div class="text-xs text-slate-500">Ubah mode online / offline</div>
+                    </div>
+                    <button onclick="toggleNodeOnline()" id="nodeToggleBtn" class="px-4 py-2 rounded-xl bg-emerald-500 text-white font-bold text-xs shadow">
+                        ONLINE
+                    </button>
+                </div>
 
-    function adminApp() {
-      return {
-        // App States
-        session: null,
-        loading: false,
-        sidebarOpen: false,
-        currentView: 'dashboard',
-        currentUserProfile: null,
+                <!-- Toggle Sound FX -->
+                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div>
+                        <div class="text-sm font-bold text-slate-800">Efek Suara Barcode Beep</div>
+                        <div class="text-xs text-slate-500">Feedback Audio Scanner Web API</div>
+                    </div>
+                    <button onclick="toggleSound()" id="soundToggleBtn" class="px-4 py-2 rounded-xl bg-brand-600 text-white font-bold text-xs shadow">
+                        AKTIF
+                    </button>
+                </div>
+            </div>
 
-        // Auth Form
-        loginForm: { email: '', password: '' },
+            <div id="syncInfo" class="mt-4 text-[11px] font-semibold text-slate-400 text-center"></div>
 
-        // Modals
-        modalProductOpen: false,
-        selectedFile: null,
+            <button onclick="closeSettingsModal()" class="w-full mt-4 py-3.5 rounded-2xl bg-slate-800 text-white font-extrabold text-sm transition">
+                SIMPAN & TUTUP
+            </button>
+        </div>
+    </div>
 
-        // Form Data
-        productForm: { id: null, name: '', barcode: '', sku: '', brand: '', category_id: '', unit: 'PCS', image_path: '' },
+    <!-- 5. APPLICATION JAVASCRIPT & LOGIC -->
+    <script>
+        /* ====================================================
+         * KONFIGURASI SUPABASE (isi sebelum dipakai)
+         * - ANON KEY aman berada di sisi client karena akses dibatasi RLS.
+         * - JANGAN pernah memakai service_role key di file ini.
+         * - Kiosk TIDAK memakai login: berjalan sebagai role anon. Hak aksesnya diatur
+         *   lewat RLS/GRANT di Supabase (lihat kiosk_anon_access.sql).
+         * ==================================================== */
+        const CONFIG = {
+            SUPABASE_URL: 'https://qwwtawqidgwiabenkuwk.supabase.co',
+            SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3d3Rhd3FpZGd3aWFiZW5rdXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MzkzOTUsImV4cCI6MjA5ODExNTM5NX0.Q05_kZrzbL7n4FRlVsYOKyh7xrQ2ykPfnMFi6LiLGvg',
+            KIOSK_CODE: 'KIOSK-001'
+        };
+        const APP_VERSION = '1.1.0';
+        const HEARTBEAT_MS = 60000;      // heartbeat tiap 60 detik
+        const SYNC_MS = 300000;          // sync berkala tiap 5 menit (jaring pengaman realtime)
+        const SYNC_OVERLAP_MS = 60000;   // tumpang tindih sync agar tidak ada data terlewat
+        const LOOKUP_TIMEOUT_MS = 3500;  // batas waktu lookup online sebelum pindah ke cache
+        const IMAGE_BUCKET = 'product-images';
+        const PLACEHOLDER_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><rect width="100%" height="100%" fill="#f1f5f9"/>' +
+            '<text x="50%" y="50%" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="28">Tanpa Foto</text></svg>');
 
-        // Collections Data
-        products: [],
-        categories: [],
-        priceRules: [],
-        priceHistory: [],
-        promos: [],
-        events: [],
-        pwpCampaigns: [],
-        kiosks: [],
-        stores: [],
-        usersList: [],
-        activityLogs: [],
-        imageUrls: {},
-        placeholder: PLACEHOLDER,
-        booted: false,
-        recentLogs: [],
-        topProducts: [],
+        /* ----------------------------------------------------
+         * STATE VARIABLES
+         * ---------------------------------------------------- */
+        let isSoundEnabled = true;
+        let isStandby = true;
+        let resetTimer = null;
+        let remainingSeconds = 15;
+        let inputCode = "";
+        let keyboardBuffer = "";
+        let lastKeyTime = Date.now();
 
-        // Statistics
-        stats: { products: 0, promos: 0, events: 0, kiosksOnline: 0, kiosksTotal: 0 },
+        let sb = null;                 // Supabase client
+        let db = null;                 // IndexedDB
+        let kiosk = null;              // { id, store_id, kiosk_code, kiosk_name, status }
+        let isOnline = false;          // hasil heartbeat terakhir
+        let forceOffline = false;      // simulasi offline dari menu pengaturan
+        let syncing = false;
+        let lastError = '';            // alasan gagal terakhir (untuk diagnosa offline)
+        let syncTimer = null;
+        let realtimeStarted = false;
+        let scanSeq = 0;
+        let currentImgUrl = null;
 
-        // Filtering
-        filters: { productSearch: '', productCategory: '', productStatus: '' },
-
-        async initApp() {
-          const { data: { session } } = await sb.auth.getSession();
-          this.session = session;
-          if (this.session) await this.bootAfterLogin();
-
-          sb.auth.onAuthStateChange(async (_event, session) => {
-            this.session = session;
-            if (session) await this.bootAfterLogin();
-          });
-
-          this.$watch('currentView', () => {
-            this.$nextTick(() => lucide.createIcons());
-          });
-        },
-
-        async bootAfterLogin() {
-          const ok = await this.loadUserProfile();
-          if (!ok) return;
-          await this.fetchAllData();
-          if (!this.booted) {
-            this.booted = true;
-            this.setupRealtimeSubscriptions();
-            this.$nextTick(() => this.initChart());
-          }
-        },
-
-        // ------------------------------------
-        // AUTHENTICATION
-        // ------------------------------------
-        async handleLogin() {
-          this.loading = true;
-          const { data, error } = await sb.auth.signInWithPassword({
-            email: this.loginForm.email,
-            password: this.loginForm.password
-          });
-
-          this.loading = false;
-          if (error) {
-            Swal.fire('Error Login', error.message, 'error');
-          } else {
-            Swal.fire({ icon: 'success', title: 'Berhasil Login', timer: 1200, showConfirmButton: false });
-            this.logActivity('LOGIN', 'User Logged In');
-          }
-        },
-
-        async handleLogout() {
-          await this.logActivity('LOGOUT', 'User Logged Out');
-          await sb.auth.signOut();
-          this.session = null;
-        },
-
-        async loadUserProfile() {
-          if (!this.session?.user) return false;
-          const { data } = await sb.from('admin_users').select('*').eq('id', this.session.user.id).maybeSingle();
-          if (!data || data.is_active === false) {
-            await sb.auth.signOut();
-            this.session = null;
-            this.currentUserProfile = null;
-            Swal.fire('Akses Ditolak', 'Akun ini tidak terdaftar sebagai admin.', 'error');
-            return false;
-          }
-          this.currentUserProfile = data;
-          return true;
-        },
-
-        showForgotAlert() {
-          Swal.fire('Lupa Password', 'Silakan hubungi Super Admin IT untuk melakukan reset kredensial.', 'info');
-        },
-
-        // ------------------------------------
-        // DATA FETCHING & REALTIME
-        // ------------------------------------
-        async fetchAllData() {
-          await Promise.all([
-            this.fetchProducts(),
-            this.fetchCategories(),
-            this.fetchPrices(),
-            this.fetchPriceHistory(),
-            this.fetchPromos(),
-            this.fetchEvents(),
-            this.fetchPwp(),
-            this.fetchKiosks(),
-            this.fetchStores(),
-            this.fetchUsers(),
-            this.fetchLogs()
-          ]);
-          this.calculateStats();
-          this.$nextTick(() => lucide.createIcons());
-        },
-
-        async fetchProducts() {
-          const { data } = await sb.from('products').select('*').order('created_at', { ascending: false });
-          this.products = data || [];
-          await this.loadImageUrls();
-        },
-
-        async loadImageUrls() {
-          const paths = [...new Set(this.products.map(p => p.image_path).filter(Boolean))];
-          if (!paths.length) return;
-          const { data } = await sb.storage.from(IMAGE_BUCKET).createSignedUrls(paths, 3600);
-          const map = {};
-          (data || []).forEach(r => { if (r.signedUrl) map[r.path] = r.signedUrl; });
-          this.imageUrls = map;
-        },
-
-        async fetchCategories() {
-          const { data } = await sb.from('categories').select('*').order('name');
-          this.categories = data || [];
-        },
-
-        async fetchPrices() {
-          const { data } = await sb.from('prices').select('*, products(name, barcode)');
-          this.priceRules = data || [];
-        },
-
-        async fetchPriceHistory() {
-          const { data } = await sb.from('price_history').select('*, products(name)').order('created_at', { ascending: false });
-          this.priceHistory = data || [];
-        },
-
-        async fetchPromos() {
-          const { data } = await sb.from('promotions').select('*');
-          this.promos = data || [];
-        },
-
-        async fetchEvents() {
-          const { data } = await sb.from('events').select('*').order('display_order');
-          this.events = data || [];
-        },
-
-        async fetchPwp() {
-          const { data } = await sb.from('pwp_campaigns').select('*');
-          this.pwpCampaigns = data || [];
-        },
-
-        async fetchKiosks() {
-          const { data } = await sb.from('kiosks').select('*, stores(*)');
-          this.kiosks = data || [];
-        },
-
-        async fetchStores() {
-          const { data } = await sb.from('stores').select('*');
-          this.stores = data || [];
-        },
-
-        async fetchUsers() {
-          const { data } = await sb.from('admin_users').select('*').order('created_at');
-          this.usersList = data || [];
-        },
-
-        async fetchLogs() {
-          const { data } = await sb.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(50);
-          this.activityLogs = data || [];
-          this.recentLogs = this.activityLogs.slice(0, 5);
-        },
-
-        setupRealtimeSubscriptions() {
-          // Listen to changes across critical tables
-          sb.channel('admin-realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'kiosks' }, () => this.fetchKiosks())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => this.fetchProducts())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'prices' }, () => this.fetchPrices())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'promotions' }, () => { this.fetchPromos().then(() => this.calculateStats()); })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => { this.fetchEvents().then(() => this.calculateStats()); })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'pwp_campaigns' }, () => this.fetchPwp())
-            .subscribe();
-        },
-
-        // ------------------------------------
-        // PRODUCT CRUD & STORAGE
-        // ------------------------------------
-        openProductModal(prod = null) {
-          if (prod) {
-            this.productForm = { ...prod };
-          } else {
-            this.productForm = { id: null, name: '', barcode: '', sku: '', brand: '', category_id: '', unit: 'PCS', image_path: '' };
-          }
-          this.selectedFile = null;
-          this.modalProductOpen = true;
-        },
-
-        handleFileUpload(event) {
-          this.selectedFile = event.target.files[0];
-        },
-
-        async saveProduct() {
-          let imagePath = this.productForm.image_path || null;
-
-          if (this.selectedFile) {
-            const safe = this.selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-            const fileName = `${Date.now()}_${safe}`;
-            const { error: upErr } = await sb.storage.from(IMAGE_BUCKET).upload(fileName, this.selectedFile);
-            if (upErr) {
-              Swal.fire('Gagal upload foto', upErr.message, 'error');
-              return;
-            }
-            imagePath = fileName;
-          }
-
-          const payload = {
-            name: this.productForm.name,
-            barcode: this.productForm.barcode,
-            sku: this.productForm.sku,
-            brand: this.productForm.brand || null,
-            category_id: this.productForm.category_id || null,
-            unit: this.productForm.unit,
-            image_path: imagePath
-          };
-
-          let error;
-          if (this.productForm.id) {
-            ({ error } = await sb.from('products').update(payload).eq('id', this.productForm.id));
-            if (!error) await this.logActivity('EDIT_PRODUCT', payload.name);
-          } else {
-            ({ error } = await sb.from('products').insert([{ ...payload, status: true }]));
-            if (!error) await this.logActivity('ADD_PRODUCT', payload.name);
-          }
-
-          if (error) {
-            Swal.fire('Gagal menyimpan', error.message, 'error');
-            return;
-          }
-          this.modalProductOpen = false;
-          await this.fetchProducts();
-          Swal.fire('Tersimpan', 'Data produk berhasil diperbarui', 'success');
-        },
-
-        async toggleProductStatus(prod) {
-          const next = !this.isOn(prod);
-          const { error } = await sb.from('products').update({ status: next }).eq('id', prod.id);
-          if (error) { Swal.fire('Gagal', error.message, 'error'); return; }
-          await this.logActivity('TOGGLE_PRODUCT_STATUS', `${prod.name} -> ${next ? 'ACTIVE' : 'INACTIVE'}`);
-          await this.fetchProducts();
-        },
-
-        // ------------------------------------
-        // KIOSK CONTROL
-        // ------------------------------------
-        async toggleKioskMaintenance(kiosk) {
-          if (typeof kiosk.status !== 'boolean') return;
-          const next = !kiosk.status;
-          const { error } = await sb.from('kiosks').update({ status: next }).eq('id', kiosk.id);
-          if (error) { Swal.fire('Gagal', error.message, 'error'); return; }
-          const code = kiosk.kiosk_code;
-          await this.logActivity('UPDATE_KIOSK', `${code} -> ${next ? 'AKTIF' : 'NONAKTIF'}`);
-          await this.fetchKiosks();
-          this.calculateStats();
-          Swal.fire('Kiosk Updated', `${code} sekarang ${next ? 'aktif' : 'nonaktif'}`, 'info');
-        },
-
-        // ------------------------------------
-        // LOGGING & UTILS
-        // ------------------------------------
-        async logActivity(action, target) {
-          await sb.from('activity_logs').insert([{
-            user_email: this.session?.user?.email || 'System',
-            action: action,
-            target: target
-          }]);
-          this.fetchLogs();
-        },
-
-        calculateStats() {
-          this.stats.products = this.products.length;
-          this.stats.promos = this.promos.filter(p => this.isRunning(p)).length;
-          this.stats.events = this.events.filter(e => this.isRunning(e)).length;
-          this.stats.kiosksTotal = this.kiosks.length;
-          this.stats.kiosksOnline = this.kiosks.filter(k => this.kioskState(k) === 'ONLINE').length;
-
-          this.topProducts = [
-            { name: 'LENGKENG BANGKOK', count: 342 },
-            { name: 'MINYAK GORENG 2L', count: 289 },
-            { name: 'SUSU UHT 1L', count: 210 },
-            { name: 'BERAS PREMIUM 5KG', count: 175 }
-          ];
-        },
-
-        get filteredProducts() {
-          return this.products.filter(p => {
-            const q = this.filters.productSearch.toLowerCase();
-            const matchesSearch = (p.name || '').toLowerCase().includes(q) ||
-                                  (p.barcode || '').includes(this.filters.productSearch) ||
-                                  (p.sku || '').toLowerCase().includes(q);
-            const matchesCategory = !this.filters.productCategory || p.category_id === this.filters.productCategory;
-            const matchesStatus = !this.filters.productStatus || (this.isOn(p) ? 'ACTIVE' : 'INACTIVE') === this.filters.productStatus;
-            return matchesSearch && matchesCategory && matchesStatus;
-          });
-        },
-
-        // status boolean (skema kiosk): false = nonaktif
-        isOn(row) { return row && row.status !== false; },
-        statusLabel(row) { return this.isOn(row) ? 'ACTIVE' : 'INACTIVE'; },
-        isRunning(row) {
-          if (!this.isOn(row)) return false;
-          const now = new Date();
-          const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
-          if (row.start_date && new Date(dateOnly.test(row.start_date) ? row.start_date + 'T00:00:00' : row.start_date) > now) return false;
-          if (row.end_date && new Date(dateOnly.test(row.end_date) ? row.end_date + 'T23:59:59.999' : row.end_date) < now) return false;
-          return true;
-        },
-
-        // Harga aktif produk = baris prices yang sedang berlaku (terbaru)
-        activePrice(prod) {
-          const rows = this.priceRules.filter(r => r.product_id === prod.id && this.isRunning(r));
-          rows.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
-          return rows[0] || null;
-        },
-
-        // Status kiosk: dihitung dari waktu heartbeat terakhir
-        kioskSeen(k) {
-          let best = 0;
-          Object.keys(k).forEach(key => {
-            if (/(seen|heartbeat|online|ping)/i.test(key) && typeof k[key] === 'string') {
-              const t = Date.parse(k[key]);
-              if (!isNaN(t) && t > best) best = t;
-            }
-          });
-          return best ? new Date(best).toISOString() : null;
-        },
-        kioskState(k) {
-          if (k.status === false) return 'NONAKTIF';
-          if (typeof k.status === 'string' && k.status.toUpperCase() === 'MAINTENANCE') return 'MAINTENANCE';
-          const seen = this.kioskSeen(k);
-          return seen && (Date.now() - Date.parse(seen)) < HEARTBEAT_MS * 3 ? 'ONLINE' : 'OFFLINE';
-        },
-
-        comingSoon() {
-          Swal.fire('Belum tersedia', 'Fitur tambah/ubah untuk bagian ini belum dibuat di panel. Sementara kelola lewat Supabase.', 'info');
-        },
-        openCategoryModal() { this.comingSoon(); },
-        openPriceModal() { this.comingSoon(); },
-        openPromoModal() { this.comingSoon(); },
-        openEventModal() { this.comingSoon(); },
-        openPwpModal() { this.comingSoon(); },
-        openStoreModal() { this.comingSoon(); },
-
-        getCategoryName(catId) {
-          const cat = this.categories.find(c => c.id === catId);
-          return cat ? cat.name : '-';
-        },
-
-        formatRupiah(num) {
-          return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
-        },
-
-        formatDate(dateStr) {
-          if (!dateStr) return '-';
-          const d = new Date(dateStr);
-          return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-        },
-
-        initChart() {
-          const ctx = document.getElementById('chartActivity');
-          if (!ctx) return;
-          new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
-              datasets: [{
-                label: 'Total Scan Kiosk',
-                data: [1200, 1900, 1500, 2100, 2800, 3400, 3100],
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                fill: true,
-                tension: 0.3
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true } }
-            }
-          });
+        const $ = (id) => document.getElementById(id);
+        const isConfigured = () => !CONFIG.SUPABASE_URL.includes('YOUR-PROJECT') && !CONFIG.SUPABASE_ANON_KEY.includes('YOUR-ANON');
+        const effectiveOnline = () => isOnline && !forceOffline;
+        // Kiosk dinonaktifkan dari panel admin (status false / 'MAINTENANCE' / 'INACTIVE')
+        const isKioskDisabled = () => {
+            if (!kiosk) return false;
+            const st = kiosk.status;
+            if (st === false) return true;
+            return typeof st === 'string' && ['MAINTENANCE', 'INACTIVE', 'NONAKTIF'].includes(st.toUpperCase());
+        };
+        function applyKioskStatusUI() {
+            const ov = $('kioskDisabledOverlay');
+            if (!ov) return;
+            const off = isKioskDisabled();
+            ov.classList.toggle('hidden', !off);
+            if (off) { closeNotFoundModal(); scanSeq++; }
         }
-      }
-    }
-  </script>
+        const ts = (d) => d ? new Date(d).getTime() : 0;
+        const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n));
+
+        function el(tag, cls, text) {
+            const e = document.createElement(tag);
+            if (cls) e.className = cls;
+            if (text !== undefined && text !== null) e.textContent = text;
+            return e;
+        }
+
+        function fmtPeriod(start, end) {
+            if (!start && !end) return 'Tanpa batas waktu';
+            const full = { day: '2-digit', month: 'short', year: 'numeric' };
+            const short = { day: '2-digit', month: 'short' };
+            if (!end) return 'Mulai ' + new Date(start).toLocaleDateString('id-ID', full);
+            if (!start) return 'Hingga ' + new Date(end).toLocaleDateString('id-ID', full);
+            const s = new Date(start), e = new Date(end);
+            const sTxt = s.toLocaleDateString('id-ID', s.getFullYear() === e.getFullYear() ? short : full);
+            return sTxt + ' – ' + e.toLocaleDateString('id-ID', full);
+        }
+
+        // Aktif = status true, sudah mulai, belum berakhir (dievaluasi di sisi kiosk agar tetap benar saat offline)
+        // Nilai tanggal-saja (YYYY-MM-DD) dianggap awal hari / akhir hari (23:59:59) waktu lokal,
+        // supaya konsisten dengan panel admin. Nilai dengan jam (timestamptz) dipakai apa adanya.
+        const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+        const periodStart = (d) => d ? new Date(DATE_ONLY.test(d) ? d + 'T00:00:00' : d) : null;
+        const periodEnd = (d) => d ? new Date(DATE_ONLY.test(d) ? d + 'T23:59:59.999' : d) : null;
+        function isActive(row, now) {
+            if (!row || row.status === false) return false;
+            if (row.start_date && periodStart(row.start_date) > now) return false;
+            if (row.end_date && periodEnd(row.end_date) < now) return false;
+            return true;
+        }
+        function pickActivePrice(rows, now) {
+            return rows.filter(r => isActive(r, now)).sort((a, b) => ts(b.start_date) - ts(a.start_date))[0] || null;
+        }
+
+        /* ----------------------------------------------------
+         * INDEXEDDB (cache offline)
+         * ---------------------------------------------------- */
+        function idbOpen() {
+            return new Promise((resolve, reject) => {
+                const r = indexedDB.open('kiosk-cache', 1);
+                r.onupgradeneeded = () => {
+                    const d = r.result;
+                    const mk = (name, idx = [], key = 'id') => {
+                        const s = d.createObjectStore(name, { keyPath: key });
+                        idx.forEach(([n, p]) => s.createIndex(n, p));
+                    };
+                    mk('products', [['barcode', 'barcode']]);
+                    mk('prices', [['product_id', 'product_id']]);
+                    mk('promotions');
+                    mk('promotion_products', [['product_id', 'product_id'], ['promotion_id', 'promotion_id']]);
+                    mk('events');
+                    mk('pwp_campaigns');
+                    mk('pwp_products', [['product_id', 'product_id'], ['pwp_id', 'pwp_id']]);
+                    mk('images', [], 'path');
+                    mk('meta', [], 'key');
+                };
+                r.onsuccess = () => resolve(r.result);
+                r.onerror = () => reject(r.error);
+            });
+        }
+        const idbReq = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+        const idbGet = (store, key) => idbReq(db.transaction(store).objectStore(store).get(key));
+        const idbGetAll = (store) => idbReq(db.transaction(store).objectStore(store).getAll());
+        const idbByIndex = (store, index, value) => idbReq(db.transaction(store).objectStore(store).index(index).getAll(value));
+        function idbPutMany(store, rows) {
+            return new Promise((res, rej) => {
+                if (!rows || !rows.length) return res();
+                const t = db.transaction(store, 'readwrite');
+                const s = t.objectStore(store);
+                rows.forEach(r => s.put(r));
+                t.oncomplete = () => res();
+                t.onerror = () => rej(t.error);
+            });
+        }
+        function idbDeleteByIndex(store, index, values) {
+            return new Promise((res, rej) => {
+                if (!values || !values.length) return res();
+                const t = db.transaction(store, 'readwrite');
+                const s = t.objectStore(store);
+                const idx = s.index(index);
+                values.forEach(v => {
+                    const c = idx.openKeyCursor(IDBKeyRange.only(v));
+                    c.onsuccess = () => {
+                        const cur = c.result;
+                        if (cur) { s.delete(cur.primaryKey); cur.continue(); }
+                    };
+                });
+                t.oncomplete = () => res();
+                t.onerror = () => rej(t.error);
+            });
+        }
+
+        /* ----------------------------------------------------
+         * AUTH & INFO KIOSK
+         * ---------------------------------------------------- */
+        // Kiosk tanpa login: semua request memakai anon key. Fungsi dipertahankan agar
+        // pemanggilnya tidak perlu diubah.
+        async function ensureSession() { return null; }
+
+        async function loadKioskInfo() {
+            const { data, error } = await sb.from('kiosks')
+                .select('id,store_id,kiosk_code,kiosk_name,status')
+                .eq('kiosk_code', CONFIG.KIOSK_CODE).maybeSingle();
+            if (error) throw error;
+            if (data) {
+                kiosk = data;
+                await idbPutMany('meta', [{ key: 'kiosk', value: data }]);
+                applyKioskStatusUI();
+            }
+        }
+
+        function logEvent(type, barcode, message) {
+            if (!sb || !kiosk || !effectiveOnline()) return;
+            sb.from('kiosk_logs')
+                .insert({ kiosk_id: kiosk.id, event_type: type, barcode: barcode || null, message: message || null })
+                .then(() => {}, () => {});
+        }
+
+        /* ----------------------------------------------------
+         * STATUS ONLINE / OFFLINE (UI)
+         * ---------------------------------------------------- */
+        function applyOnlineUI() {
+            const on = effectiveOnline();
+            const badge = $('statusBadge'), ping = $('statusPing'), dot = $('statusDot');
+            const text = $('statusText'), btn = $('nodeToggleBtn'), wifi = $('wifiIcon');
+
+            if (on) {
+                badge.className = "flex items-center space-x-2.5 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 transition-all duration-300";
+                ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+                dot.className = "relative inline-flex rounded-full h-3 w-3 bg-emerald-500";
+                text.textContent = "● NODE ONLINE";
+                wifi.className = "fa-solid fa-wifi text-emerald-600";
+            } else {
+                badge.className = "flex items-center space-x-2.5 px-4 py-2 rounded-full bg-rose-50 border border-rose-200/80 text-rose-700 transition-all duration-300";
+                ping.className = "hidden";
+                dot.className = "relative inline-flex rounded-full h-3 w-3 bg-rose-500";
+                text.textContent = "● NODE OFFLINE (CACHE)";
+                wifi.className = "fa-solid fa-plane-slash text-rose-500";
+            }
+            if (forceOffline) {
+                btn.className = "px-4 py-2 rounded-xl bg-rose-500 text-white font-bold text-xs shadow";
+                btn.textContent = "OFFLINE";
+            } else {
+                btn.className = "px-4 py-2 rounded-xl bg-emerald-500 text-white font-bold text-xs shadow";
+                btn.textContent = "ONLINE";
+            }
+        }
+
+        async function updateSyncInfo() {
+            const box = $('syncInfo');
+            if (!box) return;
+            if (!isConfigured()) {
+                box.textContent = 'Supabase belum dikonfigurasi (isi CONFIG di index.html).';
+                return;
+            }
+            let last = 'belum pernah';
+            try {
+                const m = db ? await idbGet('meta', 'last_sync_at') : null;
+                if (m) last = new Date(m.value).toLocaleString('id-ID');
+            } catch (e) { /* abaikan */ }
+            box.textContent = `${CONFIG.KIOSK_CODE} • v${APP_VERSION} • Sync terakhir: ${last}` +
+                (lastError ? ` • Error: ${lastError}` : '');
+        }
+
+        /* ----------------------------------------------------
+         * HEARTBEAT, SYNC, REALTIME
+         * ---------------------------------------------------- */
+        async function heartbeat() {
+            if (!sb || forceOffline) { applyOnlineUI(); return; }
+            try {
+                await ensureSession();
+                await loadKioskInfo().catch(e => console.warn('Muat info kiosk gagal:', e));
+                const { error } = await sb.rpc('kiosk_heartbeat', {
+                    p_kiosk_code: CONFIG.KIOSK_CODE, p_app_version: APP_VERSION
+                });
+                if (error) throw error;
+                const was = isOnline;
+                isOnline = true;
+                lastError = '';
+                applyOnlineUI();
+                if (!was) { startRealtime(); scheduleSync(0); }
+            } catch (e) {
+                console.warn('Heartbeat gagal:', e);
+                lastError = (e && (e.message || e.error_description)) || String(e);
+                isOnline = false;
+                applyOnlineUI();
+                updateSyncInfo();
+            }
+        }
+
+        function scheduleSync(delay = 2000) {
+            clearTimeout(syncTimer);
+            syncTimer = setTimeout(sync, delay);
+        }
+
+        async function sync() {
+            if (syncing || !sb || forceOffline) return;
+            syncing = true;
+            try {
+                await ensureSession();
+                const meta = await idbGet('meta', 'last_sync_at');
+                const since = meta ? new Date(ts(meta.value) - SYNC_OVERLAP_MS).toISOString() : null;
+                const { data, error } = await sb.rpc('kiosk_sync', { p_since: since });
+                if (error) throw error;
+
+                await idbPutMany('products', data.products);
+                await idbPutMany('prices', data.prices);
+                await idbPutMany('promotions', data.promotions);
+                await idbPutMany('events', data.events);
+                await idbPutMany('pwp_campaigns', data.pwp_campaigns);
+                // Baris relasi diganti utuh untuk induk yang berubah
+                await idbDeleteByIndex('promotion_products', 'promotion_id', data.promotion_changed_parents);
+                await idbPutMany('promotion_products', data.promotion_products);
+                await idbDeleteByIndex('pwp_products', 'pwp_id', data.pwp_changed_parents);
+                await idbPutMany('pwp_products', data.pwp_products);
+                await idbPutMany('meta', [{ key: 'last_sync_at', value: data.server_time }]);
+
+                await renderEvents();
+                await renderPwpBanner();
+                updateSyncInfo();
+            } catch (e) {
+                console.warn('Sync gagal:', e);
+            } finally {
+                syncing = false;
+            }
+        }
+
+        function startRealtime() {
+            if (realtimeStarted || !sb) return;
+            realtimeStarted = true;
+            let ch = sb.channel('kiosk-live');
+            ['products', 'prices', 'promotions', 'promotion_products', 'events', 'pwp_campaigns', 'pwp_products']
+                .forEach(t => {
+                    ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => scheduleSync(2000));
+                });
+            ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: 'kiosks' },
+                () => loadKioskInfo().catch(e => console.warn('Muat info kiosk gagal:', e)));
+            ch.subscribe((status) => console.log('Realtime:', status));
+        }
+
+        /* ----------------------------------------------------
+         * AUDIO SOUND SYNTHESIS (Web Audio API - No external files needed)
+         * ---------------------------------------------------- */
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playBeep(freq = 1800, type = 'sine', duration = 0.1) {
+            if (!isSoundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.warn("Audio playback exception:", e);
+            }
+        }
+
+        function playErrorBeep() {
+            playBeep(400, 'sawtooth', 0.25);
+        }
+
+        /* ----------------------------------------------------
+         * CLOCK & INITIALIZATION
+         * ---------------------------------------------------- */
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            $('clockDisplay').textContent = `${hours}:${minutes}`;
+
+            const options = { day: '2-digit', month: 'short', year: 'numeric' };
+            $('dateDisplay').textContent = now.toLocaleDateString('id-ID', options).toUpperCase();
+        }
+
+        window.onload = async function() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            renderEmpty();
+            applyOnlineUI();
+
+            // Listen for Global Touch to Reset Idle Timer
+            document.body.addEventListener('pointerdown', resetIdleTimer);
+
+            // Hardware Scanner / Physical Keyboard Listener
+            window.addEventListener('keydown', handlePhysicalBarcodeScanner);
+
+            // Cache lokal dulu (agar event/PWP tampil walau offline)
+            try {
+                db = await idbOpen();
+                const k = await idbGet('meta', 'kiosk');
+                if (k) kiosk = k.value;
+                applyKioskStatusUI();
+                await renderEvents();
+                await renderPwpBanner();
+            } catch (e) {
+                console.error('IndexedDB tidak tersedia:', e);
+            }
+            updateSyncInfo();
+
+            if (!isConfigured()) {
+                console.warn('Supabase belum dikonfigurasi: kiosk berjalan hanya dengan cache lokal.');
+                return;
+            }
+            sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
+                // Tanpa login: jangan simpan/ambil sesi (agar tidak ikut sesi admin di domain yang sama)
+                auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+            });
+
+            await heartbeat();
+            setInterval(heartbeat, HEARTBEAT_MS);
+            setInterval(() => { if (effectiveOnline()) sync(); }, SYNC_MS);
+            // Evaluasi ulang masa berlaku event/PWP (tanpa perlu data baru)
+            setInterval(() => { renderEvents(); renderPwpBanner(); }, 60000);
+
+            window.addEventListener('online', heartbeat);
+            window.addEventListener('offline', () => { isOnline = false; applyOnlineUI(); });
+        };
+
+        /* ----------------------------------------------------
+         * IDLE & AUTO RESET TIMER
+         * ---------------------------------------------------- */
+        function startIdleTimer() {
+            clearInterval(resetTimer);
+            remainingSeconds = 15;
+            $('countdownSeconds').textContent = remainingSeconds;
+
+            resetTimer = setInterval(() => {
+                if (isStandby) return;
+                remainingSeconds--;
+                $('countdownSeconds').textContent = remainingSeconds;
+
+                if (remainingSeconds <= 0) {
+                    returnToStandby();
+                }
+            }, 1000);
+        }
+
+        function resetIdleTimer() {
+            if (!isStandby) {
+                remainingSeconds = 15;
+                $('countdownSeconds').textContent = remainingSeconds;
+            }
+        }
+
+        function returnToStandby() {
+            clearInterval(resetTimer);
+            isStandby = true;
+            inputCode = "";
+            $('barcodeInput').value = "";
+
+            // Fade in Standby Overlay
+            const standby = $('standbyScreen');
+            standby.classList.remove('hidden');
+            setTimeout(() => standby.classList.remove('opacity-0'), 10);
+
+            closeNotFoundModal();
+            scanSeq++;
+            renderEmpty();
+        }
+
+        function hideStandbyScreen() {
+            isStandby = false;
+            const standby = $('standbyScreen');
+            standby.classList.add('opacity-0');
+            setTimeout(() => standby.classList.add('hidden'), 300);
+            startIdleTimer();
+        }
+
+        /* ----------------------------------------------------
+         * KEYPAD & INPUT HANDLING
+         * ---------------------------------------------------- */
+        function pressKey(key) {
+            playBeep(1200, 'sine', 0.05);
+            resetIdleTimer();
+
+            if (key === 'back') {
+                inputCode = inputCode.slice(0, -1);
+            } else {
+                if (inputCode.length < 13) inputCode += key;
+            }
+            $('barcodeInput').value = inputCode;
+        }
+
+        function clearInput() {
+            playBeep(800, 'sine', 0.05);
+            inputCode = "";
+            $('barcodeInput').value = "";
+        }
+
+        function focusBarcodeInput() {
+            // For touch prompt click
+            hideStandbyScreen();
+        }
+
+        /* ----------------------------------------------------
+         * PHYSICAL BARCODE SCANNER INTERCEPTOR
+         * Hardware scanners input characters rapidly (<30ms apart) ending with Enter.
+         * ---------------------------------------------------- */
+        function handlePhysicalBarcodeScanner(e) {
+            const currentTime = Date.now();
+
+            if (currentTime - lastKeyTime > 100) {
+                keyboardBuffer = "";
+            }
+            lastKeyTime = currentTime;
+
+            if (e.key === 'Enter') {
+                if (keyboardBuffer.length >= 3) {
+                    scanProduct(keyboardBuffer);
+                    keyboardBuffer = "";
+                } else if (inputCode.length >= 3) {
+                    handleSearch();
+                }
+            } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey) {
+                keyboardBuffer += e.key;
+            }
+        }
+
+        /* ----------------------------------------------------
+         * LOOKUP PRODUK: online (RPC) -> fallback cache lokal
+         * ---------------------------------------------------- */
+        async function lookupOnline(code) {
+            await ensureSession();
+            const { data, error } = await sb.rpc('get_product_by_barcode', { p_barcode: code });
+            if (error) throw error;
+            return data; // null = produk tidak ada / nonaktif (jawaban resmi server)
+        }
+
+        async function lookupLocal(code) {
+            if (!db) return null;
+            const now = new Date();
+            const [product] = await idbByIndex('products', 'barcode', code);
+            if (!product || product.status === false) return null;
+
+            const priceRows = (await idbByIndex('prices', 'product_id', product.id))
+                .filter(p => !kiosk || p.store_id === kiosk.store_id);
+            const pr = pickActivePrice(priceRows, now);
+            const price = pr ? {
+                normal_price: pr.normal_price, selling_price: pr.selling_price,
+                start_date: pr.start_date, end_date: pr.end_date
+            } : null;
+
+            let promotion = null;
+            const cands = [];
+            for (const pp of await idbByIndex('promotion_products', 'product_id', product.id)) {
+                const pm = await idbGet('promotions', pp.promotion_id);
+                if (pm && isActive(pm, now)) cands.push({ pm, pp });
+            }
+            cands.sort((a, b) => ts(b.pm.start_date) - ts(a.pm.start_date));
+            if (cands[0]) {
+                const { pm, pp } = cands[0];
+                promotion = {
+                    id: pm.id, name: pm.name, description: pm.description,
+                    promotion_type: pm.promotion_type, start_date: pm.start_date, end_date: pm.end_date,
+                    discount_type: pp.discount_type, discount_value: pp.discount_value, image_path: pm.image_path
+                };
+            }
+
+            const pwp = [];
+            for (const pw of await idbByIndex('pwp_products', 'product_id', product.id)) {
+                const c = await idbGet('pwp_campaigns', pw.pwp_id);
+                if (c && isActive(c, now)) {
+                    pwp.push({
+                        id: c.id, name: c.name, minimum_purchase: c.minimum_purchase,
+                        special_price: pw.special_price, start_date: c.start_date,
+                        end_date: c.end_date, image_path: c.image_path
+                    });
+                }
+            }
+
+            return {
+                product: {
+                    id: product.id, barcode: product.barcode, sku: product.sku, name: product.name,
+                    brand: product.brand, description: product.description, unit: product.unit,
+                    image_path: product.image_path
+                },
+                price, promotion, pwp: pwp.length ? pwp : null
+            };
+        }
+
+        async function lookupProduct(code) {
+            if (sb && !forceOffline) {
+                try {
+                    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), LOOKUP_TIMEOUT_MS));
+                    const data = await Promise.race([lookupOnline(code), timeout]);
+                    return { data, source: 'online' };
+                } catch (e) {
+                    console.warn('Lookup online gagal, memakai cache:', e);
+                }
+            }
+            return { data: await lookupLocal(code), source: 'cache' };
+        }
+
+        /* ----------------------------------------------------
+         * GAMBAR PRODUK (bucket private -> download + cache)
+         * ---------------------------------------------------- */
+        async function getImageUrl(path) {
+            if (!path) return PLACEHOLDER_IMG;
+            try {
+                const cached = db ? await idbGet('images', path) : null;
+                if (cached) return URL.createObjectURL(cached.blob);
+                if (!sb || !effectiveOnline()) return PLACEHOLDER_IMG;
+                const { data, error } = await sb.storage.from(IMAGE_BUCKET).download(path);
+                if (error) throw error;
+                if (db) await idbPutMany('images', [{ path, blob: data }]);
+                return URL.createObjectURL(data);
+            } catch (e) {
+                console.warn('Gagal memuat gambar:', path, e);
+                return PLACEHOLDER_IMG;
+            }
+        }
+
+        function setImage(url) {
+            if (currentImgUrl && currentImgUrl.startsWith('blob:')) URL.revokeObjectURL(currentImgUrl);
+            currentImgUrl = url;
+            $('displayImage').src = url;
+        }
+
+        /* ----------------------------------------------------
+         * PRODUCT SEARCH & RENDERING LOGIC
+         * ---------------------------------------------------- */
+        function handleSearch() {
+            const code = inputCode.trim();
+            if (!code) return;
+            scanProduct(code);
+        }
+
+        async function scanProduct(code) {
+            if (isKioskDisabled()) return; // kiosk dinonaktifkan dari admin
+            playBeep(2400, 'sine', 0.12); // High Beep Scanner Feedback
+            hideStandbyScreen();
+
+            inputCode = code;
+            $('barcodeInput').value = code;
+
+            const seq = ++scanSeq;
+            let result = { data: null, source: 'cache' };
+            try {
+                result = await lookupProduct(code);
+            } catch (e) {
+                console.error('Lookup error:', e);
+            }
+            if (seq !== scanSeq) return; // sudah ada scan yang lebih baru
+
+            const d = result.data;
+            if (d && d.product && d.price) {
+                await renderProduct(d, seq);
+                logEvent('SCAN_OK', code, result.source);
+            } else {
+                playErrorBeep();
+                $('notFoundCode').textContent = code;
+                $('notFoundModal').classList.remove('hidden');
+                logEvent('SCAN_NOT_FOUND', code, d && d.product ? 'Harga aktif tidak tersedia' : 'Produk tidak ditemukan');
+            }
+        }
+
+        function renderEmpty() {
+            $('displaySKU').textContent = '—';
+            $('displayName').textContent = 'SCAN BARCODE PRODUK';
+            $('displaySellingPrice').textContent = '—';
+            $('displayNormalPrice').classList.add('hidden');
+            $('savingsBadge').classList.add('hidden');
+            $('promoBadge').classList.add('hidden');
+            $('displayUnit').textContent = '—';
+            $('displayPeriod').textContent = '—';
+            setImage(PLACEHOLDER_IMG);
+        }
+
+        async function renderProduct(res, seq) {
+            const { product, price, promotion } = res;
+            const selling = Number(price.selling_price);
+            const normal = Number(price.normal_price);
+
+            $('displaySKU').textContent = product.sku;
+            $('displayName').textContent = product.name;
+            $('displaySellingPrice').textContent = fmtRp(selling);
+            $('displayNormalPrice').textContent = fmtRp(normal);
+
+            // Calculate savings
+            const diff = normal - selling;
+            const percent = normal > 0 ? Math.round((diff / normal) * 100) : 0;
+
+            if (diff > 0) {
+                $('savingsBadge').classList.remove('hidden');
+                $('savingsBadge').innerHTML = `<i class="fa-solid fa-tag"></i><span>HEMAT Rp ${diff.toLocaleString('id-ID')} (${percent}%)</span>`;
+                $('displayNormalPrice').classList.remove('hidden');
+            } else {
+                $('savingsBadge').classList.add('hidden');
+                $('displayNormalPrice').classList.add('hidden');
+            }
+            $('promoBadge').classList.toggle('hidden', !(promotion || diff > 0));
+
+            const unit = (product.unit || '').trim();
+            $('displayUnit').textContent = unit ? (/^PER\s/i.test(unit) ? unit.toUpperCase() : 'PER ' + unit.toUpperCase()) : '-';
+            $('displayPeriod').textContent = promotion
+                ? fmtPeriod(promotion.start_date, promotion.end_date)
+                : (price.end_date ? fmtPeriod(price.start_date, price.end_date) : '-');
+
+            setImage(PLACEHOLDER_IMG);
+            const url = await getImageUrl(product.image_path);
+            if (seq !== scanSeq) {
+                if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+                return;
+            }
+            setImage(url);
+        }
+
+        /* ----------------------------------------------------
+         * EVENT & PWP (dari cache lokal, diperbarui oleh sync)
+         * ---------------------------------------------------- */
+        const EVENT_THEMES = [
+            { card: 'from-blue-50 to-indigo-50/50 border-blue-100 hover:border-brand-300', icon: 'bg-blue-600 shadow-blue-500/20', glyph: 'fa-note-sticky', foot: 'text-brand-700 border-blue-100/60' },
+            { card: 'from-purple-50 to-pink-50/50 border-purple-100 hover:border-purple-300', icon: 'bg-brand-purple shadow-purple-500/20', glyph: 'fa-bottle-water', foot: 'text-purple-700 border-purple-100/60' },
+            { card: 'from-amber-50 to-orange-50/50 border-amber-100 hover:border-amber-300', icon: 'bg-amber-500 shadow-amber-500/20', glyph: 'fa-id-card', foot: 'text-amber-700 border-amber-100/60' }
+        ];
+
+        async function renderEvents() {
+            if (!db) return;
+            const now = new Date();
+            const events = (await idbGetAll('events'))
+                .filter(e => isActive(e, now))
+                .sort((a, b) => (a.display_order - b.display_order) || (ts(a.start_date) - ts(b.start_date)));
+
+            $('eventCount').textContent = `${events.length} Event Aktif`;
+            const grid = $('eventGrid');
+            grid.replaceChildren();
+
+            if (!events.length) {
+                grid.appendChild(el('div', 'col-span-full text-center text-sm text-slate-400 py-6', 'Belum ada event aktif.'));
+                return;
+            }
+            events.slice(0, 3).forEach((ev, i) => {
+                const t = EVENT_THEMES[i % EVENT_THEMES.length];
+                const period = fmtPeriod(ev.start_date, ev.end_date);
+                const card = el('div', `p-4 rounded-2xl bg-gradient-to-br ${t.card} border transition cursor-pointer active:scale-98 flex flex-col justify-between group`);
+                const top = el('div');
+                const iconBox = el('div', `w-10 h-10 rounded-xl ${t.icon} text-white flex items-center justify-center mb-3 shadow-md group-hover:scale-110 transition`);
+                iconBox.appendChild(el('i', `fa-solid ${t.glyph} text-lg`));
+                top.append(
+                    iconBox,
+                    el('h4', 'text-sm font-extrabold text-slate-900 mb-1 leading-snug', (ev.title || '').toUpperCase()),
+                    el('p', 'text-xs text-slate-500 line-clamp-2 mb-3', ev.description || '')
+                );
+                const foot = el('div', `flex items-center justify-between text-[11px] font-bold ${t.foot} pt-2 border-t`);
+                foot.append(el('span', null, period), el('i', 'fa-solid fa-chevron-right text-xs'));
+                card.append(top, foot);
+                card.addEventListener('click', () => showPromoModal((ev.title || '').toUpperCase(), ev.description || '', period));
+                grid.appendChild(card);
+            });
+        }
+
+        async function getActivePwp() {
+            if (!db) return { active: [], items: [] };
+            const now = new Date();
+            const [camps, items] = await Promise.all([idbGetAll('pwp_campaigns'), idbGetAll('pwp_products')]);
+            const active = camps.filter(c => isActive(c, now)).sort((a, b) => ts(b.start_date) - ts(a.start_date));
+            return { active, items };
+        }
+
+        async function renderPwpBanner() {
+            const { active } = await getActivePwp();
+            const banner = $('pwpBanner');
+            if (!active.length) { banner.classList.add('hidden'); return; }
+            banner.classList.remove('hidden');
+            const c = active[0];
+            $('pwpBannerTitle').textContent = c.name;
+            $('pwpBannerDesc').textContent = c.description ||
+                (c.minimum_purchase != null ? `Belanja minimal ${fmtRp(c.minimum_purchase)}, tebus murah produk pilihan PWP!` : 'Tebus murah produk pilihan PWP!');
+        }
+
+        async function renderPwpModal() {
+            const { active, items } = await getActivePwp();
+            const list = $('pwpModalList');
+            const sub = $('pwpModalSubtitle');
+            const now = new Date();
+            list.replaceChildren();
+
+            if (!active.length) {
+                sub.textContent = '';
+                list.appendChild(el('div', 'text-sm text-slate-500 text-center py-6', 'Belum ada PWP aktif.'));
+                return;
+            }
+            sub.textContent = (active.length === 1 && active[0].minimum_purchase != null)
+                ? `Dapatkan harga tebus khusus dengan belanja min. ${fmtRp(active[0].minimum_purchase)}`
+                : 'Dapatkan harga tebus khusus sesuai syarat tiap program';
+
+            for (const c of active) {
+                if (active.length > 1) {
+                    list.appendChild(el('div', 'text-xs font-black uppercase tracking-widest text-slate-500 pt-1',
+                        c.minimum_purchase != null ? `${c.name} · min. ${fmtRp(c.minimum_purchase)}` : c.name));
+                }
+                for (const it of items.filter(i => i.pwp_id === c.id)) {
+                    const p = await idbGet('products', it.product_id);
+                    if (!p || p.status === false) continue;
+                    const pr = pickActivePrice((await idbByIndex('prices', 'product_id', it.product_id))
+                        .filter(x => !kiosk || x.store_id === kiosk.store_id), now);
+                    const ref = pr ? Number(pr.selling_price) : null;
+                    const special = Number(it.special_price);
+
+                    const row = el('div', 'p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between');
+                    const left = el('div', 'flex items-center space-x-3');
+                    const info = el('div');
+                    info.appendChild(el('h4', 'text-sm font-bold text-slate-800', p.name));
+                    if (ref) info.appendChild(el('div', 'text-xs text-slate-400 line-through', fmtRp(ref)));
+                    left.append(el('div', 'w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-bold text-brand-600 text-[10px]', 'PWP'), info);
+
+                    const right = el('div', 'text-right');
+                    right.appendChild(el('div', 'text-sm font-black text-rose-600', `Tebus ${fmtRp(special)}`));
+                    if (ref && ref > special) {
+                        right.appendChild(el('span', 'text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold',
+                            `DISC ${Math.round((1 - special / ref) * 100)}%`));
+                    }
+                    row.append(left, right);
+                    list.appendChild(row);
+                }
+            }
+        }
+
+        /* ----------------------------------------------------
+         * MODAL CONTROLLERS
+         * ---------------------------------------------------- */
+        function closeNotFoundModal() {
+            $('notFoundModal').classList.add('hidden');
+            clearInput();
+        }
+
+        function showPromoModal(title, desc, period) {
+            playBeep(1000, 'sine', 0.05);
+            resetIdleTimer();
+            $('modalPromoTitle').textContent = title;
+            $('modalPromoDesc').textContent = desc;
+            $('modalPromoPeriod').textContent = period;
+            $('promoModal').classList.remove('hidden');
+        }
+
+        function closePromoModal() {
+            $('promoModal').classList.add('hidden');
+        }
+
+        async function openPWPModal() {
+            playBeep(1000, 'sine', 0.05);
+            resetIdleTimer();
+            try { await renderPwpModal(); } catch (e) { console.warn(e); }
+            $('pwpModal').classList.remove('hidden');
+        }
+
+        function closePWPModal() {
+            $('pwpModal').classList.add('hidden');
+        }
+
+        function openSettingsModal() {
+            updateSyncInfo();
+            $('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            $('settingsModal').classList.add('hidden');
+        }
+
+        /* ----------------------------------------------------
+         * SETTINGS & SIMULATION CONTROLS
+         * ---------------------------------------------------- */
+        // Tombol ini mensimulasikan mode offline (memaksa kiosk memakai cache lokal).
+        function toggleNodeOnline() {
+            forceOffline = !forceOffline;
+            applyOnlineUI();
+            if (!forceOffline) heartbeat();
+        }
+
+        function toggleSound() {
+            isSoundEnabled = !isSoundEnabled;
+            const btn = $('soundToggleBtn');
+            if (isSoundEnabled) {
+                btn.textContent = "AKTIF";
+                btn.className = "px-4 py-2 rounded-xl bg-brand-600 text-white font-bold text-xs shadow";
+            } else {
+                btn.textContent = "MUTED";
+                btn.className = "px-4 py-2 rounded-xl bg-slate-400 text-white font-bold text-xs shadow";
+            }
+        }
+    </script>
 </body>
 </html>
